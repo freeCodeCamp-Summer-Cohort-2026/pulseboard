@@ -21,6 +21,7 @@ export default function UpdateForm({ auth, onPosted }) {
 
     async function handleSubmit(e) {
         e.preventDefault();
+        setCharCount(0);
         setError(null);
 
         // NOTE: no loading state here yet while the request is in flight -
@@ -42,7 +43,7 @@ export default function UpdateForm({ auth, onPosted }) {
                 value={text}
                 onChange={(e) => (
                     setText(e.target.value),
-                    setCharCount(e.target.length)
+                    setCharCount(e.target.value.length)
                 )}
                 maxLength={1000}
                 required
