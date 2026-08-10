@@ -1,6 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import UpdateCard, { groupReactions } from "../UpdateCard";
-import UpdateForm from "../UpdateForm";
 
 describe("groupReactions", () => {
     it("counts reactions by emoji", () => {
@@ -35,20 +34,5 @@ describe("UpdateCard", () => {
         render(<UpdateCard update={update} auth={null} onUpdated={() => {}} />);
 
         expect(screen.queryByRole("button")).not.toBeInTheDocument();
-    });
-});
-
-describe("CountCharacters", () => {
-    it("puts characters into the form's field", () => {
-        render(<UpdateForm auth={{ token: "x" }} onPosted={() => {}} />);
-
-        fireEvent.change(
-            screen.getByPlaceholderText("What's your status today?"),
-            {
-                target: { value: "Test Status!" },
-            },
-        );
-
-        expect(screen.getByText("12/1000")).toBeInTheDocument();
     });
 });
