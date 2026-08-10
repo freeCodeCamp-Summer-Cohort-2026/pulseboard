@@ -8,7 +8,7 @@ const router = express.Router();
 // GET /api/updates?author=<userId>&status=<on-track|blocked|done>
 router.get("/", async (req, res) => {
   try {
-    const { author, status } = req.query;
+    const { author, status, sort } = req.query;
     const filter = {};
 
     if (author) {
@@ -23,9 +23,10 @@ router.get("/", async (req, res) => {
       }
       filter.status = status;
     }
-
+    
+    const sortDirection = sort === "oldest" ? 1 : -1;
     const updates = await Update.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: sortDirection })
       .populate("author", "displayName email")
       .populate("reactions.user", "displayName email");
 

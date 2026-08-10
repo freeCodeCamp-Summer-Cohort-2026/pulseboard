@@ -96,6 +96,24 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("Second update");
   });
 
+  it("lists updates oldest first", async () => {
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "First update", status: "blocked" });
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Second update", status: "blocked" });
+
+    const res = await request(app).get("/api/updates?sort=oldest");
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toHaveLength(2);
+    expect(res.body.updates[0].text).toBe("First update");
+  });
+
   it("filters by status", async () => {
     await request(app)
       .post("/api/updates")
