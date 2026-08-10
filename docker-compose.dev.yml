@@ -1,0 +1,9 @@
+# run dev with live reload using:
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+services:
+    web:
+        build:
+            target: dev
+        volumes:
+            - ./web:/app
+            - /app/node_modules
