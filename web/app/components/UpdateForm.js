@@ -13,6 +13,7 @@ export default function UpdateForm({ auth, onPosted }) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState("on-track");
   const [error, setError] = useState(null);
+  const [isPosting, setIsPosting] = useState(false);
 
   if (!auth) {
     return <p className="hint">Log in to post a status update.</p>;
@@ -21,9 +22,8 @@ export default function UpdateForm({ auth, onPosted }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    setIsPosting(true);
 
-    // NOTE: no loading state here yet while the request is in flight -
-    // see the "add a loading state to the update form" issue.
     try {
       const { update } = await createUpdate({ text, status }, auth.token);
       setText("");
@@ -31,6 +31,8 @@ export default function UpdateForm({ auth, onPosted }) {
       onPosted(update);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsPosting(false);
     }
   }
 
@@ -42,18 +44,36 @@ export default function UpdateForm({ auth, onPosted }) {
         onChange={(e) => setText(e.target.value)}
         maxLength={1000}
         required
+        disabled={isPosting}
       />
       <div className="update-form-row">
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          disabled={isPosting}
+        >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
           ))}
         </select>
-        <button type="submit">Post update</button>
+        <button type="submit" disabled={isPosting}>
+          {isPosting ? (
+            <>
+              <span className="spinner" aria-hidden="true" />
+              Posting...
+            </>
+          ) : (
+            "Post update"
+          )}
+        </button>
+        
       </div>
       {error && <p className="error">{error}</p>}
     </form>
   );
 }
+
+
+
