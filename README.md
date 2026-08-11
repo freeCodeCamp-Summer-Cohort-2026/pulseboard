@@ -47,6 +47,7 @@ all of them is `password123`), or register your own.
 ### Running without Docker
 
 You'll need a local or remote MongoDB instance - if you don't already have
+<<<<<<< HEAD
 one, before doing anything below, seriously consider just
 [installing Docker](https://docs.docker.com/get-docker/) instead and using
 the Quickstart above. It gets you MongoDB *and* the API *and* the frontend
@@ -57,6 +58,11 @@ If Docker genuinely isn't an option for you (locked-down work laptop, no
 admin rights, etc.), pick whichever of these is easiest:
 
 - **No local install: [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+=======
+one, pick whichever of these is easiest for you:
+
+- **Easiest, no local install: [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+>>>>>>> 6295a38 (docs: explain how to get a MongoDB instance without Docker)
   free tier.** Sign up (no card needed for the free tier), create a free M0
   cluster, add a database user under "Database Access," allow your IP (or
   `0.0.0.0/0` for simplicity while developing) under "Network Access," then
