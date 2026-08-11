@@ -76,27 +76,17 @@ export default function Feed({ auth, refreshToken }) {
   }, [updates]);
 
   function handleUpdated(updated) {
-    setUpdates((prev) =>
-      prev.map((u) => (u._id === updated._id ? updated : u)),
-    );
-  }
-
-  function handleDeleted(deleteId) {
-    setUpdates((prev) => prev.filter((update) => update._id !== deleteId));
-  }
+    setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
+  };
 
   function handleShowMyUpdates() {
-    try {
-      setShowMyUpdates(!showMyUpdates);
-      if (!showMyUpdates) {
-        setAuthorFilter(auth ? auth.user._id : "");
-      } else {
-        setAuthorFilter("");
-      }
-    } catch (err) {
-      setError(err.message);
+    setShowMyUpdates(!showMyUpdates);
+    if (!showMyUpdates){
+      setAuthorFilter(auth.user._id);
+    } else {
+      setAuthorFilter("");
     }
-  }
+  };
 
   return (
     <div className="feed">
@@ -121,7 +111,7 @@ export default function Feed({ auth, refreshToken }) {
             <option key={id} value={id}>
               {name}
             </option>
-          ))}
+            ))}
         </select>
         <select
           value={tagFilter}
@@ -143,8 +133,6 @@ export default function Feed({ auth, refreshToken }) {
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
-
-      </div>
 
       {error && <p className="error">{error}</p>}
       {loading && <p className="hint">Loading feed...</p>}
