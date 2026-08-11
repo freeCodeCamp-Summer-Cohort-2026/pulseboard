@@ -77,7 +77,16 @@ export default function Feed({ auth, refreshToken }) {
 
   function handleUpdated(updated) {
     setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
-  }
+  };
+
+  function handleShowMyUpdates() {
+    setShowMyUpdates(!showMyUpdates);
+    if (!showMyUpdates){
+      setAuthorFilter(auth.user._id);
+    } else {
+      setAuthorFilter("");
+    }
+  };
 
   function handleShowMyUpdates() {
     try {
