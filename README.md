@@ -46,7 +46,22 @@ all of them is `password123`), or register your own.
 
 ### Running without Docker
 
-You'll need a local or remote MongoDB instance.
+You'll need a local or remote MongoDB instance - if you don't already have
+one, pick whichever of these is easiest for you:
+
+- **Easiest, no local install: [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
+  free tier.** Sign up (no card needed for the free tier), create a free M0
+  cluster, add a database user under "Database Access," allow your IP (or
+  `0.0.0.0/0` for simplicity while developing) under "Network Access," then
+  copy the connection string Atlas gives you into `api/.env` as `MONGO_URI`.
+- **Local install:** grab [MongoDB Community Server](https://www.mongodb.com/try/download/community)
+  for your OS. Once it's running, the default `MONGO_URI` in `.env.example`
+  (`mongodb://localhost:27017/pulseboard`) will just work as-is.
+
+If you skip this and try to run the app anyway, you'll hit a Mongoose
+`MongooseServerSelectionError` - that error means the app can't reach any
+MongoDB server at the address in `MONGO_URI`, not a problem with your JWT
+secret or anything else in `.env`.
 
 ```bash
 # API
