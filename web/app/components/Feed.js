@@ -47,7 +47,16 @@ export default function Feed({ auth, refreshToken }) {
 
   function handleUpdated(updated) {
     setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
-  }
+  };
+
+  function handleShowMyUpdates() {
+    setShowMyUpdates(!showMyUpdates);
+    if (!showMyUpdates){
+      setAuthorFilter(auth.user._id);
+    } else {
+      setAuthorFilter("");
+    }
+  };
 
   function handleShowMyUpdates() {
     try {
@@ -91,6 +100,10 @@ export default function Feed({ auth, refreshToken }) {
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
+        <div>
+          <input id="show-updates-checkbox" type="checkbox" value={showMyUpdates} onChange={handleShowMyUpdates}/>
+          <label for="show-updates-checkbox">Show My Updates</label>
+        </div>
       </div>
 
       {error && <p className="error">{error}</p>}
