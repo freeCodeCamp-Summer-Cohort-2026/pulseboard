@@ -17,7 +17,8 @@
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.6.0"
+    "mongoose": "^8.6.0",
+    "socket.io": "^4.8.3"
   },
   "devDependencies": {
     "cross-env": "^7.0.3",
@@ -28,6 +29,9 @@
   "jest": {
     "testEnvironment": "node",
     "testTimeout": 30000,
-    "testPathIgnorePatterns": ["/node_modules/", "/src/__tests__/setup.js"]
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/src/__tests__/setup.js"
+    ]
   }
 }
