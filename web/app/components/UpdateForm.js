@@ -77,8 +77,6 @@ export default function UpdateForm({ auth, onPosted }) {
     setText("");
     setStatus("on-track");
 
-    // NOTE: no loading state here yet while the request is in flight -
-    // see the "add a loading state to the update form" issue.
     try {
       const { update } = await createUpdate({ text, status }, auth.token);
       onPosted(update);
@@ -104,16 +102,30 @@ export default function UpdateForm({ auth, onPosted }) {
         onChange={(e) => setText(e.target.value)}
         maxLength={1000}
         required
+        disabled={isPosting}
       />
       <div className="update-form-row">
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
+        <select
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+          disabled={isPosting}
+        >
           {STATUS_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
           ))}
         </select>
-        <button type="submit">Post update</button>
+        <button type="submit" disabled={isPosting}>
+          {isPosting ? (
+            <>
+              <span className="spinner" aria-hidden="true" />
+              Posting...
+            </>
+          ) : (
+            "Post update"
+          )}
+        </button>
       </div>
       {error && <p className="error">{error}</p>}
       {messageQueue.length > 0 && (
