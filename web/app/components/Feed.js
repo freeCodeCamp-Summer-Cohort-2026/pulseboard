@@ -113,26 +113,16 @@ export default function Feed({ auth, refreshToken }) {
             </option>
             ))}
         </select>
-        <select
-          value={tagFilter}
-          onChange={(e) => setTagFilter(e.target.value)}
-        >
-          <option value="">All tags</option>
-          {tags.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-        {auth && (<div>
-          <input id="show-updates-checkbox" type="checkbox" checked={showMyUpdates} onChange={handleShowMyUpdates} />
-          <label htmlFor="show-updates-checkbox">Show My Updates</label>
-        </div>)}
         <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
+        <div>
+          <input id="show-updates-checkbox" type="checkbox" value={showMyUpdates} onChange={handleShowMyUpdates}/>
+          <label for="show-updates-checkbox">Show My Updates</label>
+        </div>
+      </div>
 
       {error && <p className="error">{error}</p>}
       {loading && <p className="hint">Loading feed...</p>}
