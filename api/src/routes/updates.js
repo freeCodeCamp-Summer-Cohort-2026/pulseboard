@@ -2,9 +2,19 @@ const express = require("express");
 const Update = require("../models/Update");
 const { STATUS_VALUES } = require("../models/Update");
 const { requireAuth } = require("../middleware/auth");
+const rateLimit = require("express-rate-limit");
 const SORT_VALUES = ["newest", "oldest", "most-reactions"];
 
 const router = express.Router();
+
+const createUpdateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many updates posted. Please wait a minute before posting again." },
+  keyGenerator: (req) => req.user?.id,
+});
 
 // GET /api/updates?author=<userId>&status=<on-track|blocked|done>&sort=<newest|oldest|most-reactions>
 router.get("/", async (req, res) => {
@@ -32,7 +42,7 @@ router.get("/", async (req, res) => {
         });
       }
     }
-    
+
     const sortDirection = sort === "oldest" ? 1 : -1;
     const updates = await Update.find(filter)
       .sort({ createdAt: sortDirection })
@@ -67,7 +77,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/updates
-router.post("/", requireAuth, async (req, res) => {
+router.post("/", requireAuth, createUpdateLimiter, async (req, res) => {
   try {
     const { text, status } = req.body;
 
