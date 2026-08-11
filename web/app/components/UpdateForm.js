@@ -13,10 +13,15 @@ export default function UpdateForm({ auth, onPosted }) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState("on-track");
   const [error, setError] = useState(null);
-  const [messageQueue, setMessageQueue] = useState(() => {
-    const queuedMessages = localStorage.getItem("queuedMessages");
-    return queuedMessages ? JSON.parse(queuedMessages) : [];
-  });
+  const [messageQueue, setMessageQueue] = useState([]);
+
+  useEffect(() => {
+    const queue = localStorage.getItem("queuedMessages");
+    if (queue) {
+      setMessageQueue(JSON.parse(queue));
+      console.log(queue);
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("queuedMessages", JSON.stringify(messageQueue));
