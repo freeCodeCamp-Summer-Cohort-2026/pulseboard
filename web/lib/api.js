@@ -37,10 +37,11 @@ export function login({ email, password }) {
   });
 }
 
-export function listUpdates({ author, status } = {}) {
+export function listUpdates({ author, status, sort } = {}) {
   const params = new URLSearchParams();
   if (author) params.set("author", author);
   if (status) params.set("status", status);
+  if (sort) params.set("sort", sort);
   const query = params.toString() ? `?${params.toString()}` : "";
   return request(`/api/updates${query}`);
 }
