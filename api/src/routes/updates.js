@@ -75,6 +75,9 @@ router.post("/", requireAuth, async (req, res) => {
 
     const populated = await update.populate("author", "displayName email");
 
+    //* Broadcast event of post being made
+    app.locals.io.emit("POST:update", update);
+
     return res.status(201).json({ update: populated });
   } catch (err) {
     return res.status(500).json({ error: "Failed to create update" });
@@ -109,6 +112,9 @@ router.post("/:id/reactions", requireAuth, async (req, res) => {
       { path: "author", select: "displayName email" },
       { path: "reactions.user", select: "displayName email" },
     ]);
+
+    //* Broadcast event of post being reacted to
+    app.locals.io.emit("POST:reaction", req.params.id, req.body.emoji);
 
     return res.status(201).json({ update: populated });
   } catch (err) {

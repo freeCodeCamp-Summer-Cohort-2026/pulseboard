@@ -21,6 +21,9 @@ async function main() {
     return;
   });
 
+  //? Attach io to app.locals or req object?
+  app.locals.io = io;
+
   //* Once websocket(s) defined then start server
   httpServer.listen(PORT, () => {
     console.log(`PulseBoard API listening on port ${PORT}`);
