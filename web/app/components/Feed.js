@@ -13,6 +13,7 @@ export default function Feed({ auth, refreshToken }) {
   const [sortOrder, setSortOrder] = useState("newest");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showMyUpdates, setShowMyUpdates] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -46,7 +47,16 @@ export default function Feed({ auth, refreshToken }) {
 
   function handleUpdated(updated) {
     setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
-  }
+  };
+
+  function handleShowMyUpdates() {
+    setShowMyUpdates(!showMyUpdates);
+    if (!showMyUpdates){
+      setAuthorFilter(auth.user._id);
+    } else {
+      setAuthorFilter("");
+    }
+  };
 
   return (
     <div className="feed">
@@ -65,13 +75,20 @@ export default function Feed({ auth, refreshToken }) {
             <option key={id} value={id}>
               {name}
             </option>
-          ))}
+            ))}
         </select>
+<<<<<<< HEAD
         <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
+=======
+        <div>
+          <input id="show-updates-checkbox" type="checkbox" value={showMyUpdates} onChange={handleShowMyUpdates}/>
+          <label for="show-updates-checkbox">Show My Updates</label>
+        </div>
+>>>>>>> 56e449b (Add a 'my-updates' view)
       </div>
 
       {error && <p className="error">{error}</p>}
