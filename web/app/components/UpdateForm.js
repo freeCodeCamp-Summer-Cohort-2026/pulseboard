@@ -18,6 +18,14 @@ export default function UpdateForm({ auth, onPosted }) {
     return <p className="hint">Log in to post a status update.</p>;
   }
 
+  function isNetworkError(error) {
+    const NETWORK_ERROR_MESSAGES = ["networkerror", "failed to fetch"]; // checks against errors displayed by Firefox and Chrome/Opera
+    const lowerCaseMsg = error.message.toLowerCase();
+    return NETWORK_ERROR_MESSAGES.some((exampleError) =>
+      lowerCaseMsg.includes(exampleError),
+    );
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
@@ -30,7 +38,13 @@ export default function UpdateForm({ auth, onPosted }) {
       setStatus("on-track");
       onPosted(update);
     } catch (err) {
-      setError(err.message);
+      if (isNetworkError(err)) {
+        setError(
+          `Failed to connect. The message will be sent when the connection is reestablished.`,
+        );
+      } else {
+        setError(err.message);
+      }
     }
   }
 
