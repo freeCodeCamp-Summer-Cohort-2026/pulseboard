@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createUpdate } from "@/lib/api";
 
 const STATUS_OPTIONS = [
@@ -13,6 +13,14 @@ export default function UpdateForm({ auth, onPosted }) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState("on-track");
   const [error, setError] = useState(null);
+  const [messageQueue, setMessageQueue] = useState(() => {
+    const queuedMessages = localStorage.getItem("queuedMessages");
+    return queuedMessages ? JSON.parse(queuedMessages) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("queuedMessages", JSON.stringify(messageQueue));
+  }, [messageQueue.length]);
 
   if (!auth) {
     return <p className="hint">Log in to post a status update.</p>;
@@ -42,6 +50,7 @@ export default function UpdateForm({ auth, onPosted }) {
         setError(
           `Failed to connect. The message will be sent when the connection is reestablished.`,
         );
+        setMessageQueue([...messageQueue, { text, status }]);
       } else {
         setError(err.message);
       }
@@ -68,6 +77,11 @@ export default function UpdateForm({ auth, onPosted }) {
         <button type="submit">Post update</button>
       </div>
       {error && <p className="error">{error}</p>}
+      {messageQueue.length > 0 && (
+        <p className="hint">
+          Waiting for connection. Queued messages: {messageQueue.length}
+        </p>
+      )}
     </form>
   );
 }
