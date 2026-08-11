@@ -75,6 +75,23 @@ describe("POST /api/updates", () => {
 
     expect(res.status).toBe(400);
   });
+
+  it("rate limits after 15 posts in a window", async () => {
+    const makeRequest = () =>
+      request(app)
+        .post("/api/updates")
+        .set("Authorization", `Bearer ${token}`)
+        .send({ text: "update", status: "on-track" });
+
+    for (let i = 0; i < 15; i++) {
+      const res = await makeRequest();
+      expect(res.status).toBe(201);
+    }
+
+    const res = await makeRequest();
+    expect(res.status).toBe(429);
+    expect(res.body.error).toBe("Too many updates posted. Please wait a minute before posting again.");
+  });
 });
 
 describe("GET /api/updates", () => {
