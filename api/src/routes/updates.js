@@ -2,6 +2,7 @@ const express = require("express");
 const Update = require("../models/Update");
 const { STATUS_VALUES } = require("../models/Update");
 const { requireAuth } = require("../middleware/auth");
+const SORT_VALUES = ["newest", "oldest", "most-reactions"];
 
 const router = express.Router();
 
@@ -22,6 +23,14 @@ router.get("/", async (req, res) => {
         });
       }
       filter.status = status;
+    }
+
+    if (sort) {
+      if (!SORT_VALUES.includes(sort)) {
+        return res.status(400).json({
+          error: `sort must be one of: ${SORT_VALUES.join(", ")}`,
+        });
+      }
     }
     
     const sortDirection = sort === "oldest" ? 1 : -1;

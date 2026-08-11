@@ -139,6 +139,14 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("Most reacted");
   });
 
+  it("rejects an invalid sort value", async () => {
+    const res = await request(app)
+      .get("/api/updates?sort=popular");
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("sort must be one of: newest, oldest, most-reactions");
+  });
+
   it("filters by status", async () => {
     await request(app)
       .post("/api/updates")
