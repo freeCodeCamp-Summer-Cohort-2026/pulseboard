@@ -75,10 +75,11 @@ export default function Feed({ auth, refreshToken }) {
             </option>
             ))}
         </select>
-        <div>
+        {auth && (<div>
           <input id="show-updates-checkbox" type="checkbox" value={showMyUpdates} onChange={handleShowMyUpdates}/>
           <label for="show-updates-checkbox">Show My Updates</label>
-        </div>
+        </div>)}
+        
       </div>
 
       {error && <p className="error">{error}</p>}
