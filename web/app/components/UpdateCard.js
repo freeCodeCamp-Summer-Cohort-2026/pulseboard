@@ -5,7 +5,7 @@ import { addReaction } from "@/lib/api";
 
 // Starter emoji set - deliberately small. See the "add a reaction emoji
 // option" good-first-issue for extending this.
-const REACTION_OPTIONS = ["👍", "🎉"];
+const REACTION_OPTIONS = ["👍", "🎉", "❤️", "🚀"];
 
 const STATUS_LABELS = {
   "on-track": "On track",
