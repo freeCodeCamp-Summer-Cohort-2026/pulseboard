@@ -114,6 +114,31 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("First update");
   });
 
+  it("lists updates with the most reactions first", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Most reacted", status: "blocked" });
+
+    const updateId = createRes.body.update._id;
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "No reactions", status: "blocked" });
+
+    await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ emoji: "✅" });
+
+    const res = await request(app).get("/api/updates?sort=most-reactions");
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toHaveLength(2);
+    expect(res.body.updates[0].text).toBe("Most reacted");
+  });
+
   it("filters by status", async () => {
     await request(app)
       .post("/api/updates")

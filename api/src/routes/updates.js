@@ -5,7 +5,7 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-// GET /api/updates?author=<userId>&status=<on-track|blocked|done>
+// GET /api/updates?author=<userId>&status=<on-track|blocked|done>&sort=<newest|oldest|most-reactions>
 router.get("/", async (req, res) => {
   try {
     const { author, status, sort } = req.query;
@@ -29,6 +29,10 @@ router.get("/", async (req, res) => {
       .sort({ createdAt: sortDirection })
       .populate("author", "displayName email")
       .populate("reactions.user", "displayName email");
+
+    if (sort === "most-reactions") {
+      updates.sort((a, b) => b.reactions.length - a.reactions.length);
+    }
 
     return res.json({ updates });
   } catch (err) {
