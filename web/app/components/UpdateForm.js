@@ -109,7 +109,13 @@ export default function UpdateForm({ auth, onPosted }) {
           status,
         });
       } else {
-        setError(err.message);
+        if (isNetworkError(err)) {
+          setError(
+            `Failed to connect. The message will be sent when the connection is reestablished.`,
+          );
+        } else {
+          setError(err.message);
+        }
       }
     }
   }
