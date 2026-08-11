@@ -204,3 +204,96 @@ describe("POST /api/updates/:id/reactions", () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
+  it("deletes a reaction and returns the updated update", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Test react post. React to me for now.",
+        status: "on-track",
+      });
+
+    const updateId = createRes.body.update._id;
+
+    const reactionRes = await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ emoji: "✨" });
+
+    const reactionId = reactionRes.body.update.reactions[0]._id;
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}/reactions/${reactionId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.update.reactions).toHaveLength(0);
+  });
+
+  it("rejects deleting another user's reaction", async () => {
+    const other = await registerUser({
+      email: "other@example.com",
+      displayName: "Other",
+    });
+
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Test react post. React to me for now.",
+        status: "on-track",
+      });
+
+    const updateId = createRes.body.update._id;
+
+    const reactionRes = await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${other.token}`)
+      .send({ emoji: "👍" });
+
+    const reactionId = reactionRes.body.update.reactions[0]._id;
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}/reactions/${reactionId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error).toBe("You can only remove your own reactions");
+  });
+
+  it("returns 404 when the update does not exist", async () => {
+    const fakeUpdateId = "64b7f3f3f3f3f3f3f3f3f3f3";
+    const fakeReactionId = "74b7f3f3f3f3f3f3f3f3f3f3";
+
+    const res = await request(app)
+      .delete(
+        `/api/updates/${fakeUpdateId}/reactions/${fakeReactionId}`
+      )
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Update not found");
+  });
+
+  it("returns 404 when the reaction does not exist", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Test react post. React to me for now.",
+        status: "on-track",
+      });
+
+    const updateId = createRes.body.update._id;
+    const fakeReactionId = "74b7f3f3f3f3f3f3f3f3f3f3";
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}/reactions/${fakeReactionId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Reaction not found");
+  });
+});
