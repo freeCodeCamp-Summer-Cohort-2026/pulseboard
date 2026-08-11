@@ -3,6 +3,7 @@ const Update = require("../models/Update");
 const { STATUS_VALUES } = require("../models/Update");
 const { requireAuth } = require("../middleware/auth");
 const rateLimit = require("express-rate-limit");
+const SORT_VALUES = ["newest", "oldest", "most-reactions"];
 
 const router = express.Router();
 
@@ -15,10 +16,10 @@ const createUpdateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id,
 });
 
-// GET /api/updates?author=<userId>&status=<on-track|blocked|done>
+// GET /api/updates?author=<userId>&status=<on-track|blocked|done>&sort=<newest|oldest|most-reactions>
 router.get("/", async (req, res) => {
   try {
-    const { author, status } = req.query;
+    const { author, status, sort } = req.query;
     const filter = {};
 
     if (author) {
@@ -34,10 +35,23 @@ router.get("/", async (req, res) => {
       filter.status = status;
     }
 
+    if (sort) {
+      if (!SORT_VALUES.includes(sort)) {
+        return res.status(400).json({
+          error: `sort must be one of: ${SORT_VALUES.join(", ")}`,
+        });
+      }
+    }
+
+    const sortDirection = sort === "oldest" ? 1 : -1;
     const updates = await Update.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: sortDirection })
       .populate("author", "displayName email")
       .populate("reactions.user", "displayName email");
+
+    if (sort === "most-reactions") {
+      updates.sort((a, b) => b.reactions.length - a.reactions.length);
+    }
 
     return res.json({ updates });
   } catch (err) {
