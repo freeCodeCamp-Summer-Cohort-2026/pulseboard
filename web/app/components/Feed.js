@@ -10,6 +10,7 @@ export default function Feed({ auth, refreshToken }) {
   const [updates, setUpdates] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [authorFilter, setAuthorFilter] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMyUpdates, setShowMyUpdates] = useState(false);
@@ -20,6 +21,7 @@ export default function Feed({ auth, refreshToken }) {
     listUpdates({
       status: statusFilter || undefined,
       author: authorFilter || undefined,
+      sort: sortOrder,
     })
       .then(({ updates: fetched }) => {
         if (!cancelled) setUpdates(fetched);
@@ -33,7 +35,7 @@ export default function Feed({ auth, refreshToken }) {
     return () => {
       cancelled = true;
     };
-  }, [statusFilter, authorFilter, refreshToken]);
+  }, [statusFilter, authorFilter, sortOrder, refreshToken]);
 
   const authors = useMemo(() => {
     const map = new Map();
@@ -84,6 +86,11 @@ export default function Feed({ auth, refreshToken }) {
           <label htmlFor="show-updates-checkbox">Show My Updates</label>
         </div>)}
         
+        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="most-reactions">Most reactions</option>
+        </select>
       </div>
 
       {error && <p className="error">{error}</p>}
