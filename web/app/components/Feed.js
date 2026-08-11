@@ -77,18 +77,15 @@ export default function Feed({ auth, refreshToken }) {
             </option>
             ))}
         </select>
-<<<<<<< HEAD
         <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
-=======
         <div>
           <input id="show-updates-checkbox" type="checkbox" value={showMyUpdates} onChange={handleShowMyUpdates}/>
           <label for="show-updates-checkbox">Show My Updates</label>
         </div>
->>>>>>> 56e449b (Add a 'my-updates' view)
       </div>
 
       {error && <p className="error">{error}</p>}
