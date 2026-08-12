@@ -45,16 +45,20 @@ export default function Feed({ auth, refreshToken }) {
 
   function handleUpdated(updated) {
     setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
-  };
+  }
 
   function handleShowMyUpdates() {
-    setShowMyUpdates(!showMyUpdates);
-    if (!showMyUpdates){
-      setAuthorFilter(auth.user._id);
-    } else {
-      setAuthorFilter("");
+    try {
+      setShowMyUpdates(!showMyUpdates);
+      if (!showMyUpdates){
+        setAuthorFilter(auth ? auth.user._id : "");
+      } else {
+        setAuthorFilter("");
+      }
+    } catch (err) {
+       setError(err.message);
     }
-  };
+  }
 
   return (
     <div className="feed">
@@ -76,8 +80,8 @@ export default function Feed({ auth, refreshToken }) {
             ))}
         </select>
         {auth && (<div>
-          <input id="show-updates-checkbox" type="checkbox" value={showMyUpdates} onChange={handleShowMyUpdates}/>
-          <label for="show-updates-checkbox">Show My Updates</label>
+          <input id="show-updates-checkbox" type="checkbox" checked={showMyUpdates} onChange={handleShowMyUpdates}/>
+          <label htmlFor="show-updates-checkbox">Show My Updates</label>
         </div>)}
         
       </div>
