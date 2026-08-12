@@ -1,11 +1,10 @@
 const express = require("express");
-const { createServer } = require("http");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
 const updatesRoutes = require("./routes/updates");
 
-function createHttpServer() {
+function createApp() {
   const app = express();
 
   app.use(cors());
@@ -37,11 +36,7 @@ function createHttpServer() {
     res.status(500).json({ error: "Internal server error" });
   });
 
-  //* Once app has all routes/middleware attached, then create http server and return
-
-  const httpServer = createServer(app);
-
-  return httpServer;
+  return app;
 }
 
-module.exports = { createHttpServer };
+module.exports = { createApp };

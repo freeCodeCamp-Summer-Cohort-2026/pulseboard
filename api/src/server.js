@@ -1,7 +1,8 @@
 const { Server } = require("socket.io");
 
 require("dotenv").config();
-const { createHttpServer } = require("./app");
+const { createApp } = require("./app");
+const { createServer } = require("http");
 const { connectDB } = require("./config/db");
 
 const PORT = process.env.PORT || 4000;
@@ -10,7 +11,8 @@ async function main() {
   await connectDB();
   console.log("Connected to MongoDB");
 
-  const httpServer = createHttpServer();
+  const app = createApp();
+  const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: {
       origin: [`http://localhost:${PORT}`]
