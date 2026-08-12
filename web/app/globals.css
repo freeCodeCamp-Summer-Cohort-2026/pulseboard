@@ -17,6 +17,39 @@
   --spinner-track: rgba(255, 255, 255, 0.35);
   --spinner-highlight: white;
   --reaction-button-bg: white;
+  --control-bg: white;
+  --control-text: #1a1a2e;
+  --placeholder-text: #666;
+  --reaction-count-text: #555;
+  --reaction-button-text: #1a1a2e;
+  --focus-indicator: #4b5efc;
+}
+
+:root[data-theme="dark"] {
+  --page-bg: #1d2145;
+  --text-primary: #f7f7ff;
+  --text-secondary: #cfd2e6;
+  --text-hint: #b8bdd8;
+  --surface-bg: #292e55;
+  --surface-border: #747ba8;
+  --control-border: #747ba8;
+  --primary-button-bg: #b7c0ff;
+  --primary-button-text: #171a33;
+  --status-on-track-bg: #9bdcb0;
+  --status-blocked-bg: #ffabb4;
+  --status-done-bg: #a9c7ff;
+  --status-text: #171a33;
+  --error-text: #ffc2c8;
+  --reaction-count-bg: #3d4475;
+  --reaction-button-bg: #1f2343;
+  --spinner-track: rgba(23, 26, 51, 0.3);
+  --spinner-highlight: #171a33;
+  --control-bg: #1f2343;
+  --control-text: #f7f7ff;
+  --placeholder-text: #b8bdd8;
+  --reaction-count-text: #f7f7ff;
+  --reaction-button-text: #f7f7ff;
+  --focus-indicator: #cbd0ff;
 }
 
 * {
@@ -77,6 +110,8 @@ section {
   border-radius: 4px;
   flex: 1;
   min-width: 140px;
+  background: var(--control-bg);
+  color: var(--control-text);
 }
 
 .auth-panel button {
@@ -105,6 +140,13 @@ section {
   border-radius: 4px;
   font-family: inherit;
   resize: vertical;
+  background: var(--control-bg);
+  color: var(--control-text);
+}
+
+.auth-panel input::placeholder,
+.update-form textarea::placeholder {
+  color: var(--placeholder-text);
 }
 
 .update-form-row {
@@ -116,6 +158,8 @@ section {
   padding: 0.5rem;
   border-radius: 4px;
   border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  color: var(--control-text);
 }
 
 .update-form button {
@@ -137,6 +181,8 @@ section {
   padding: 0.4rem;
   border-radius: 4px;
   border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  color: var(--control-text);
 }
 
 .update-list {
@@ -207,6 +253,7 @@ section {
   background: var(--reaction-count-bg);
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
+  color: var(--reaction-count-text);
 }
 
 .reaction-button {
@@ -215,6 +262,18 @@ section {
   border-radius: 999px;
   padding: 0.1rem 0.5rem;
   cursor: pointer;
+  color: var(--reaction-button-text);
+}
+
+.auth-panel input:focus-visible,
+.auth-panel button:focus-visible,
+.update-form textarea:focus-visible,
+.update-form select:focus-visible,
+.update-form button:focus-visible,
+.filter-bar select:focus-visible,
+.reaction-button:focus-visible {
+  outline: 2px solid var(--focus-indicator);
+  outline-offset: 2px;
 }
 
 .hint {
