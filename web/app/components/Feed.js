@@ -47,16 +47,20 @@ export default function Feed({ auth, refreshToken }) {
 
   function handleUpdated(updated) {
     setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
-  };
+  }
 
   function handleShowMyUpdates() {
-    setShowMyUpdates(!showMyUpdates);
-    if (!showMyUpdates){
-      setAuthorFilter(auth.user._id);
-    } else {
-      setAuthorFilter("");
+    try {
+      setShowMyUpdates(!showMyUpdates);
+      if (!showMyUpdates){
+        setAuthorFilter(auth ? auth.user._id : "");
+      } else {
+        setAuthorFilter("");
+      }
+    } catch (err) {
+       setError(err.message);
     }
-  };
+  }
 
   return (
     <div className="feed">
@@ -77,15 +81,11 @@ export default function Feed({ auth, refreshToken }) {
             </option>
             ))}
         </select>
-        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
-          <option value="newest">Newest first</option>
-          <option value="oldest">Oldest first</option>
-          <option value="most-reactions">Most reactions</option>
-        </select>
-        <div>
-          <input id="show-updates-checkbox" type="checkbox" value={showMyUpdates} onChange={handleShowMyUpdates}/>
-          <label for="show-updates-checkbox">Show My Updates</label>
-        </div>
+        {auth && (<div>
+          <input id="show-updates-checkbox" type="checkbox" checked={showMyUpdates} onChange={handleShowMyUpdates}/>
+          <label htmlFor="show-updates-checkbox">Show My Updates</label>
+        </div>)}
+        
       </div>
 
       {error && <p className="error">{error}</p>}
