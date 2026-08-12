@@ -5,19 +5,63 @@ const User = require("./models/User");
 const Update = require("./models/Update");
 
 const SEED_USERS = [
-  { email: "amina@pulseboard.dev", displayName: "Amina Yusuf", password: "password123" },
-  { email: "diego@pulseboard.dev", displayName: "Diego Fernandez", password: "password123" },
-  { email: "priya@pulseboard.dev", displayName: "Priya Nair", password: "password123" },
-  { email: "sam@pulseboard.dev", displayName: "Sam Okoro", password: "password123" },
+  {
+    email: "amina@pulseboard.dev",
+    displayName: "Amina Yusuf",
+    password: "password123",
+    role: "MEMBER",
+  },
+  {
+    email: "diego@pulseboard.dev",
+    displayName: "Diego Fernandez",
+    password: "password123",
+    role: "LEAD",
+  },
+  {
+    email: "priya@pulseboard.dev",
+    displayName: "Priya Nair",
+    password: "password123",
+    role: "MEMBER",
+  },
+  {
+    email: "sam@pulseboard.dev",
+    displayName: "Sam Okoro",
+    password: "password123",
+    role: "MEMBER",
+  },
 ];
 
 const SEED_UPDATES = [
-  { authorEmail: "amina@pulseboard.dev", text: "Finished the auth middleware and wired up JWT verification.", status: "done" },
-  { authorEmail: "diego@pulseboard.dev", text: "Still fighting with the CI pipeline, Docker cache keeps invalidating.", status: "blocked" },
-  { authorEmail: "priya@pulseboard.dev", text: "Feed UI is coming together, just need to hook up reactions.", status: "on-track" },
-  { authorEmail: "sam@pulseboard.dev", text: "Waiting on design review before I can finish the update form styling.", status: "blocked" },
-  { authorEmail: "amina@pulseboard.dev", text: "Wrote seed data and a handful of Supertest cases for the updates route.", status: "done" },
-  { authorEmail: "diego@pulseboard.dev", text: "Docker compose is finally green locally, opening a PR today.", status: "on-track" },
+  {
+    authorEmail: "amina@pulseboard.dev",
+    text: "Finished the auth middleware and wired up JWT verification.",
+    status: "done",
+  },
+  {
+    authorEmail: "diego@pulseboard.dev",
+    text: "Still fighting with the CI pipeline, Docker cache keeps invalidating.",
+    status: "blocked",
+  },
+  {
+    authorEmail: "priya@pulseboard.dev",
+    text: "Feed UI is coming together, just need to hook up reactions.",
+    status: "on-track",
+  },
+  {
+    authorEmail: "sam@pulseboard.dev",
+    text: "Waiting on design review before I can finish the update form styling.",
+    status: "blocked",
+  },
+  {
+    authorEmail: "amina@pulseboard.dev",
+    text: "Wrote seed data and a handful of Supertest cases for the updates route.",
+    status: "done",
+  },
+  {
+    authorEmail: "diego@pulseboard.dev",
+    text: "Docker compose is finally green locally, opening a PR today.",
+    status: "on-track",
+  },
 ];
 
 async function seed() {
@@ -34,6 +78,7 @@ async function seed() {
       email: u.email,
       displayName: u.displayName,
       passwordHash,
+      role: u.role,
     });
     usersByEmail[u.email] = user;
     console.log(`Created user ${u.email} (password: ${u.password})`);
@@ -54,7 +99,7 @@ async function seed() {
   if (firstUpdate) {
     const reactors = Object.values(usersByEmail).slice(1, 3);
     firstUpdate.reactions.push(
-      ...reactors.map((r) => ({ emoji: "🎉", user: r._id }))
+      ...reactors.map((r) => ({ emoji: "🎉", user: r._id })),
     );
     await firstUpdate.save();
   }

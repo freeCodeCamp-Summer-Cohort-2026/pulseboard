@@ -1,8 +1,8 @@
 const express = require("express");
 const Update = require("../models/Update");
 const { STATUS_VALUES } = require("../models/Update");
-const { requireAuth } = require("../middleware/auth");
 const rateLimit = require("express-rate-limit");
+const { requireAuth, checkRole } = require("../middleware/auth");
 const SORT_VALUES = ["newest", "oldest", "most-reactions"];
 
 const router = express.Router();
@@ -76,13 +76,29 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+router.delete("/:id", requireAuth, checkRole("LEAD"), async (req, res) => {
+  try {
+    const result = await Update.findByIdAndDelete(req.params.id);
+
+    if (!result) {
+      return res.status(404).json({ error: "Update not found" });
+    }
+
+    return res.status(200).json(req.params.id);
+  } catch (err) {
+    return res.status(400).json({ error: "Invalid update id" });
+  }
+});
+
 // POST /api/updates
-router.post("/", requireAuth, createUpdateLimiter, async (req, res) => {
+router.post("/", requireAuth, createUpdateLimiter, checkRole("LEAD", "MEMBER"), async (req, res) => {
   try {
     const { text, status } = req.body;
 
     if (!text || !text.trim()) {
-      return res.status(400).json({ error: "text is required and cannot be empty" });
+      return res
+        .status(400)
+        .json({ error: "text is required and cannot be empty" });
     }
 
     if (!status || !STATUS_VALUES.includes(status)) {
@@ -106,69 +122,83 @@ router.post("/", requireAuth, createUpdateLimiter, async (req, res) => {
 });
 
 // POST /api/updates/:id/reactions
-router.post("/:id/reactions", requireAuth, async (req, res) => {
-  try {
-    const { emoji } = req.body;
+router.post(
+  "/:id/reactions",
+  requireAuth,
+  checkRole("LEAD", "MEMBER"),
+  async (req, res) => {
+    try {
+      const { emoji } = req.body;
 
-    if (!emoji || !emoji.trim()) {
-      return res.status(400).json({ error: "emoji is required" });
+      if (!emoji || !emoji.trim()) {
+        return res.status(400).json({ error: "emoji is required" });
+      }
+
+      const update = await Update.findById(req.params.id);
+      if (!update) {
+        return res.status(404).json({ error: "Update not found" });
+      }
+
+      const alreadyReacted = update.reactions.some(
+        (r) => r.user.toString() === req.user.id && r.emoji === emoji,
+      );
+      if (alreadyReacted) {
+        return res
+          .status(409)
+          .json({ error: "You already reacted with that emoji" });
+      }
+
+      update.reactions.push({ emoji, user: req.user.id });
+      await update.save();
+
+      const populated = await update.populate([
+        { path: "author", select: "displayName email" },
+        { path: "reactions.user", select: "displayName email" },
+      ]);
+
+      return res.status(201).json({ update: populated });
+    } catch (err) {
+      return res.status(400).json({ error: "Invalid update id" });
     }
-
-    const update = await Update.findById(req.params.id);
-    if (!update) {
-      return res.status(404).json({ error: "Update not found" });
-    }
-
-    const alreadyReacted = update.reactions.some(
-      (r) => r.user.toString() === req.user.id && r.emoji === emoji
-    );
-    if (alreadyReacted) {
-      return res.status(409).json({ error: "You already reacted with that emoji" });
-    }
-
-    update.reactions.push({ emoji, user: req.user.id });
-    await update.save();
-
-    const populated = await update.populate([
-      { path: "author", select: "displayName email" },
-      { path: "reactions.user", select: "displayName email" },
-    ]);
-
-    return res.status(201).json({ update: populated });
-  } catch (err) {
-    return res.status(400).json({ error: "Invalid update id" });
-  }
-});
+  },
+);
 
 // DELETE /api/updates/:id/reactions/:reactionId
-router.delete("/:id/reactions/:reactionId", requireAuth, async (req, res) => {
-  try {
-    const update = await Update.findById(req.params.id);
-    if (!update) {
-      return res.status(404).json({ error: "Update not found" });
+router.delete(
+  "/:id/reactions/:reactionId",
+  requireAuth,
+  checkRole("LEAD", "MEMBER"),
+  async (req, res) => {
+    try {
+      const update = await Update.findById(req.params.id);
+      if (!update) {
+        return res.status(404).json({ error: "Update not found" });
+      }
+
+      const reaction = update.reactions.id(req.params.reactionId);
+      if (!reaction) {
+        return res.status(404).json({ error: "Reaction not found" });
+      }
+
+      if (reaction.user.toString() !== req.user.id) {
+        return res
+          .status(403)
+          .json({ error: "You can only remove your own reactions" });
+      }
+
+      reaction.deleteOne();
+      await update.save();
+
+      const populated = await update.populate([
+        { path: "author", select: "displayName email" },
+        { path: "reactions.user", select: "displayName email" },
+      ]);
+
+      return res.json({ update: populated });
+    } catch (err) {
+      return res.status(400).json({ error: "Invalid update or reaction id" });
     }
-
-    const reaction = update.reactions.id(req.params.reactionId);
-    if (!reaction) {
-      return res.status(404).json({ error: "Reaction not found" });
-    }
-
-    if (reaction.user.toString() !== req.user.id) {
-      return res.status(403).json({ error: "You can only remove your own reactions" });
-    }
-
-    reaction.deleteOne();
-    await update.save();
-
-    const populated = await update.populate([
-      { path: "author", select: "displayName email" },
-      { path: "reactions.user", select: "displayName email" },
-    ]);
-
-    return res.json({ update: populated });
-  } catch (err) {
-    return res.status(400).json({ error: "Invalid update or reaction id" });
-  }
-});
+  },
+);
 
 module.exports = router;
