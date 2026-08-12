@@ -13,6 +13,7 @@ export default function Feed({ auth, refreshToken }) {
   const [sortOrder, setSortOrder] = useState("newest");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showMyUpdates, setShowMyUpdates] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +49,19 @@ export default function Feed({ auth, refreshToken }) {
     setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
   }
 
+  function handleShowMyUpdates() {
+    try {
+      setShowMyUpdates(!showMyUpdates);
+      if (!showMyUpdates){
+        setAuthorFilter(auth ? auth.user._id : "");
+      } else {
+        setAuthorFilter("");
+      }
+    } catch (err) {
+       setError(err.message);
+    }
+  }
+
   return (
     <div className="feed">
       <div className="filter-bar">
@@ -65,13 +79,18 @@ export default function Feed({ auth, refreshToken }) {
             <option key={id} value={id}>
               {name}
             </option>
-          ))}
+            ))}
         </select>
+        {auth && (<div>
+          <input id="show-updates-checkbox" type="checkbox" checked={showMyUpdates} onChange={handleShowMyUpdates}/>
+          <label htmlFor="show-updates-checkbox">Show My Updates</label>
+        </div>)}
         <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
+        
       </div>
 
       {error && <p className="error">{error}</p>}
