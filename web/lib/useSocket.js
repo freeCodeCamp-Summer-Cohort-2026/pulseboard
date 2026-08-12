@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import io from "socket.io-client";
+import { addReaction } from "./api";
 
-export function useSocket() {
+export function useSocket({ addUpdate }) {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -10,10 +11,13 @@ export function useSocket() {
     //* Listen for events + update client feed
     socket.on("POST:update", (update) => {
       //? Add update to client feed
+      addUpdate(update);
     });
 
-    socket.on("POST:reaction", ([id, emoji]) => {
-      //? Attach emoji reaction to post with given id
+    //? reactionData: [postId, user, emoji]
+    socket.on("POST:reaction", (reactionData) => {
+      //? Attach reaction to post with given id
+      addReaction(reactionData);
     });
 
     //* Cleanup

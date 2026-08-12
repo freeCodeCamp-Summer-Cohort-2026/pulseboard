@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { listUpdates } from "@/lib/api";
 import UpdateCard from "./UpdateCard";
+import { useSocket } from "@/lib/useSocket";
 
 const STATUS_OPTIONS = ["on-track", "blocked", "done"];
 
@@ -13,6 +14,10 @@ export default function Feed({ auth, refreshToken }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  //* Establish initial socket connection + pass handlers
+  useSocket({ addUpdate: handleUpdateState, addReaction: handleUserReaction });
+
+  //? Could get rid of refresh token and have websocket post to all clients including origin user
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -41,6 +46,27 @@ export default function Feed({ auth, refreshToken }) {
     }
     return Array.from(map.entries());
   }, [updates]);
+
+  //* Handler for POST:update event on websocket
+  function handleUpdateState(update) {
+    if (updates.find((u) => u._id === update._id)) return;
+    setUpdates([...updates, update]);
+  }
+
+  //* Handler for POST:reaction event on websocket
+  function handleUserReaction([postId, user, emoji]) {
+    const targetUpdate = updates.find((u) => u._id === postId);
+    const targetUpdateId = updates.findIndex((u) => u._id === postId);
+
+    // Can access current user with auth.user
+    targetUpdate.reactions.push({ emoji, user });
+
+    setUpdates([
+      ...updates.slice(0, targetUpdateId),
+      targetUpdate,
+      ...updates.slice(targetUpdateId + 1)
+    ]);
+  }
 
   function handleUpdated(updated) {
     setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
