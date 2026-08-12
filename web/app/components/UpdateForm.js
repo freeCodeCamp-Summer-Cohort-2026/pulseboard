@@ -14,7 +14,10 @@ export default function UpdateForm({ auth, onPosted }) {
   const [status, setStatus] = useState("on-track");
   const [error, setError] = useState(null);
   const [isPosting, setIsPosting] = useState(false);
+<<<<<<< HEAD
   const [charCount, setCharCount] = useState(0);
+=======
+>>>>>>> 1bf1aae93f62b9c6576f02f8129609fc76c97a50
 
   if (!auth) {
     return <p className="hint">Log in to post a status update.</p>;
