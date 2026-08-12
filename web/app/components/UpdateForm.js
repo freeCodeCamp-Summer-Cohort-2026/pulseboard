@@ -28,6 +28,7 @@ export default function UpdateForm({ auth, onPosted }) {
     try {
       const { update } = await createUpdate({ text, status }, auth.token);
       setText("");
+      setCharCount(0);
       setStatus("on-track");
       onPosted(update);
     } catch (err) {
