@@ -18,7 +18,10 @@ async function main() {
   });
 
   io.on("connection", (socket) => {
-    return;
+    console.log("A user connected");
+    socket.on("disconnect", () => {
+      console.log("A user disconnected");
+    });
   });
 
   //? Attach io to app.locals or req object?

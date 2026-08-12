@@ -114,7 +114,7 @@ router.post("/:id/reactions", requireAuth, async (req, res) => {
     ]);
 
     //* Broadcast event of post being reacted to
-    app.locals.io.emit("POST:reaction", req.params.id, req.body.emoji);
+    app.locals.io.emit("POST:reaction", [req.params.id, req.body.emoji]);
 
     return res.status(201).json({ update: populated });
   } catch (err) {
