@@ -160,6 +160,12 @@ section {
   color: var(--placeholder-text);
 }
 
+.update-form label {
+  display: flex;
+  justify-content: right;
+  opacity: 60%;
+  font-size: 0.5em;
+}
 .update-form-row {
   display: flex;
   gap: 0.5rem;

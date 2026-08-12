@@ -14,6 +14,7 @@ export default function UpdateForm({ auth, onPosted }) {
   const [status, setStatus] = useState("on-track");
   const [error, setError] = useState(null);
   const [isPosting, setIsPosting] = useState(false);
+  const [charCount, setCharCount] = useState(0);
 
   if (!auth) {
     return <p className="hint">Log in to post a status update.</p>;
@@ -27,6 +28,7 @@ export default function UpdateForm({ auth, onPosted }) {
     try {
       const { update } = await createUpdate({ text, status }, auth.token);
       setText("");
+      setCharCount(0);
       setStatus("on-track");
       onPosted(update);
     } catch (err) {
@@ -41,11 +43,13 @@ export default function UpdateForm({ auth, onPosted }) {
       <textarea
         placeholder="What's your status today?"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {setText(e.target.value)
+                setCharCount(e.target.value.length)}}
         maxLength={1000}
         required
         disabled={isPosting}
       />
+        <label>{charCount}/1000</label>
       <div className="update-form-row">
         <select
           value={status}
