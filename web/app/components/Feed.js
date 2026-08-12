@@ -62,19 +62,6 @@ export default function Feed({ auth, refreshToken }) {
     }
   }
 
-  function handleShowMyUpdates() {
-    try {
-      setShowMyUpdates(!showMyUpdates);
-      if (!showMyUpdates){
-        setAuthorFilter(auth ? auth.user._id : "");
-      } else {
-        setAuthorFilter("");
-      }
-    } catch (err) {
-       setError(err.message);
-    }
-  }
-
   return (
     <div className="feed">
       <div className="filter-bar">
