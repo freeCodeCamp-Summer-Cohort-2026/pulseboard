@@ -1,10 +1,11 @@
 import {render, screen, fireEvent, waitFor} from "@testing-library/react";
 import UpdateCard, {formatRelativeTime, groupReactions} from "../UpdateCard";
-import { addReaction, removeReaction } from "@/lib/api";
+import { addReaction, removeReaction, editUpdate } from "@/lib/api";
 
 jest.mock("@/lib/api", () => ({
   addReaction: jest.fn(),
   removeReaction: jest.fn(),
+  editUpdate: jest.fn(),
 }));
 
 describe("formatRelativeTime", () => {
@@ -207,5 +208,185 @@ describe("UpdateCard", () => {
     });
     expect(removeReaction).not.toHaveBeenCalled();
     expect(onUpdated).toHaveBeenCalledWith(updatedUpdate);
+  });
+
+    it("shows an edit form when the author clicks Edit", () => {
+    render(<UpdateCard update={update} auth={auth} onUpdated={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(screen.getByRole("textbox", { name: /update text/i })).toHaveValue(
+      update.text
+    );
+    expect(screen.getByRole("combobox", { name: /status/i })).toHaveValue(
+      update.status
+    );
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+  });
+
+    it("saves the edited update and reports the updated update", async () => {
+    const editedUpdate = {
+      ...update,
+      text: "Fixed the login page bug",
+      status: "on-track",
+    };
+
+    editUpdate.mockResolvedValueOnce({ update: editedUpdate });
+
+    const onUpdated = jest.fn();
+
+    render(
+      <UpdateCard
+        update={update}
+        auth={auth}
+        onUpdated={onUpdated}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    const textInput = screen.getByRole("textbox", { name: /update text/i });
+    const statusInput = screen.getByRole("combobox", { name: /status/i });
+
+    fireEvent.change(textInput, {
+      target: { value: "Fixed the login page bug" },
+    });
+
+    fireEvent.change(statusInput, {
+      target: { value: "on-track" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(editUpdate).toHaveBeenCalledWith(
+        "1",
+        {
+          text: "Fixed the login page bug",
+          status: "on-track",
+        },
+        "test-token"
+      );
+    });
+
+    expect(onUpdated).toHaveBeenCalledWith(editedUpdate);
+  });
+
+    it("does not show Edit to users who do not own the update", () => {
+    const otherAuth = {
+      token: "other-token",
+      user: { _id: "u2" },
+    };
+
+    render(
+      <UpdateCard
+        update={update}
+        auth={otherAuth}
+        onUpdated={() => {}}
+      />
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Edit" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("cancels editing without saving the draft", () => {
+    const onUpdated = jest.fn();
+
+    render(
+      <UpdateCard
+        update={update}
+        auth={auth}
+        onUpdated={onUpdated}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    const textInput = screen.getByRole("textbox", { name: /update text/i });
+
+    fireEvent.change(textInput, {
+      target: { value: "Temporary edit" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(
+      screen.queryByRole("textbox", { name: /update text/i })
+    ).not.toBeInTheDocument();
+
+    expect(screen.getByText("Shipped the login page")).toBeInTheDocument();
+    expect(editUpdate).not.toHaveBeenCalled();
+    expect(onUpdated).not.toHaveBeenCalled();
+  });
+
+  it("resets cancelled edits when entering edit mode again", () => {
+    render(
+      <UpdateCard
+        update={update}
+        auth={auth}
+        onUpdated={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    const textInput = screen.getByRole("textbox", { name: /update text/i });
+
+    fireEvent.change(textInput, {
+      target: { value: "Cancelled draft" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    expect(
+      screen.getByRole("textbox", { name: /update text/i })
+    ).toHaveValue(update.text);
+
+    expect(
+      screen.getByRole("combobox", { name: /status/i })
+    ).toHaveValue(update.status);
+  });
+
+  it("shows an error and keeps the edit form open when saving fails", async () => {
+    editUpdate.mockRejectedValueOnce(new Error("Failed to save update"));
+
+    const onUpdated = jest.fn();
+
+    render(
+      <UpdateCard
+        update={update}
+        auth={auth}
+        onUpdated={onUpdated}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+    const textInput = screen.getByRole("textbox", { name: /update text/i });
+
+    fireEvent.change(textInput, {
+      target: { value: "Draft with an error" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Failed to save update")).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByRole("textbox", { name: /update text/i })
+    ).toHaveValue("Draft with an error");
+
+    expect(
+      screen.getByRole("button", { name: "Cancel" })
+    ).toBeInTheDocument();
+
+    expect(onUpdated).not.toHaveBeenCalled();
   });
 });

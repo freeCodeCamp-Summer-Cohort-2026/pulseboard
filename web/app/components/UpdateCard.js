@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addReaction, deleteUpdate, removeReaction } from "@/lib/api";
+import { addReaction, deleteUpdate, editUpdate, removeReaction } from "@/lib/api";
 
 const REACTION_OPTIONS = ["👍", "🎉", "❤️", "🚀"];
 
@@ -61,7 +61,16 @@ export function findUserReaction(reactions, userId, emoji) {
 
 export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [error, setError] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(update.text);
+  const [editStatus, setEditStatus] = useState(update.status);
+  const [saving, setSaving] = useState(false);
   const reactionGroups = groupReactions(update.reactions || []);
+
+  useEffect(() => {
+    setEditText(update.text);
+    setEditStatus(update.status);
+  }, [update._id, update.text, update.status]);
 
   async function handleReactionToggle(emoji) {
     if (!auth) return;
@@ -113,6 +122,38 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
     }
   }
 
+  function handleEditStart() {
+    setEditText(update.text);
+    setEditStatus(update.status);
+    setError(null);
+    setIsEditing(true);
+  }
+
+  async function handleEditSave() {
+    if (!auth) return;
+
+    setError(null);
+    setSaving(true);
+
+    try {
+      const { update: updated } = await editUpdate(
+        update._id,
+        {
+          text: editText,
+          status: editStatus,
+        },
+        auth.token
+      );
+
+      onUpdated(updated);
+      setIsEditing(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
     <article className="update-card">
       <header>
@@ -121,11 +162,37 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
             {update.author?.displayName || "Unknown"}
           </span>
         </div>
-        <span className={`status-badge status-${update.status}`}>
-          {STATUS_LABELS[update.status] || update.status}
-        </span>
+        {isEditing ? (
+          <div className="edit-field">
+            <label htmlFor="edit-update-status">Status</label>
+            <select
+              id="edit-update-status"
+              value={editStatus}
+              onChange={(e) => setEditStatus(e.target.value)}
+            >
+              <option value="on-track">On track</option>
+              <option value="blocked">Blocked</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+        ) : (
+          <span className={`status-badge status-${update.status}`}>
+            {STATUS_LABELS[update.status] || update.status}
+          </span>
+        )}
       </header>
-      <p className="update-text">{update.text}</p>
+      {isEditing ? (
+        <div className="edit-form">
+          <label htmlFor="edit-update-text">Update text</label>
+          <textarea
+            id="edit-update-text"
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+          />
+        </div>
+      ) : (
+        <p className="update-text">{update.text}</p>
+      )}
       <footer>
         <time dateTime={update.createdAt}>
           {formatRelativeTime(update.createdAt)}
@@ -157,10 +224,45 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
                 );
               })}
           </div>
-          {auth?.user?.role === "LEAD" && (
-            <button className="delete-btn" type="button" onClick={handleDelete}>
-              Delete
-            </button>
+          {isEditing ? (
+            <div className="edit-actions">
+              <button
+                type="button"
+                className="save-btn"
+                onClick={handleEditSave}
+                disabled={saving}
+              >
+                {saving ? "Saving..." : "Save"}
+              </button>
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={() => setIsEditing(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <>
+              {auth?.user?._id === update.author?._id && (
+                <button
+                  type="button"
+                  className="edit-btn"
+                  onClick={handleEditStart}
+                >
+                  Edit
+                </button>
+              )}
+              {auth?.user?.role === "LEAD" && (
+                <button
+                  className="delete-btn"
+                  type="button"
+                  onClick={handleDelete}
+                >
+                  Delete
+                </button>
+              )}
+            </>
           )}
         </div>
       </footer>

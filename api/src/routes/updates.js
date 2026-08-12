@@ -76,6 +76,61 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+router.patch("/:id", requireAuth, async (req, res) => {
+  try {
+    const { text, status } = req.body;
+
+    const update = await Update.findById(req.params.id);
+
+    if (!update) {
+      return res.status(404).json({ error: "Update not found" });
+    }
+
+    if (update.author.toString() !== req.user.id) {
+      return res.status(403).json({
+        error: "You can only edit your own updates",
+      });
+    }
+
+    if (text === undefined && status === undefined) {
+      return res.status(400).json({
+        error: "At least one of text or status is required",
+      });
+    }
+
+    if (text !== undefined) {
+      if (!text || !text.trim()) {
+        return res.status(400).json({
+          error: "text is required and cannot be empty",
+        });
+      }
+
+      update.text = text.trim();
+    }
+
+    if (status !== undefined) {
+      if (!STATUS_VALUES.includes(status)) {
+        return res.status(400).json({
+          error: `status must be one of: ${STATUS_VALUES.join(", ")}`,
+        });
+      }
+
+      update.status = status;
+    }
+
+    await update.save();
+
+    const populated = await update.populate([
+      { path: "author", select: "displayName email" },
+      { path: "reactions.user", select: "displayName email" },
+    ]);
+
+    return res.json({ update: populated });
+  } catch (err) {
+    return res.status(400).json({ error: "Invalid update id" });
+  }
+});
+
 router.delete("/:id", requireAuth, checkRole("LEAD"), async (req, res) => {
   try {
     const result = await Update.findByIdAndDelete(req.params.id);
