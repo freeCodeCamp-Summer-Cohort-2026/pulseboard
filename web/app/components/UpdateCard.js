@@ -13,6 +13,40 @@ const STATUS_LABELS = {
   done: "Done",
 };
 
+const MS_PER_MINUTE = 60 * 1000;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
+
+export function formatRelativeTime(createdAt, now = Date.now()) {
+  const createdDate = new Date(createdAt);
+  const createdTime = createdDate.getTime();
+  const elapsedTime = Math.max(0, now - createdTime);
+
+  if (elapsedTime < MS_PER_MINUTE) {
+    return "just now";
+  }
+
+  const minutes = Math.floor(elapsedTime / MS_PER_MINUTE);
+
+  if (minutes < 60) {
+    return minutes === 1 ? `${minutes} minute ago` : `${minutes} minutes ago`;
+  }
+
+  const hours = Math.floor(elapsedTime / MS_PER_HOUR);
+
+  if (hours < 24) {
+    return hours === 1 ? `${hours} hour ago` : `${hours} hours ago`;
+  }
+
+  const days = Math.floor(elapsedTime / MS_PER_DAY);
+
+  if (days < 7) {
+    return days === 1 ? `${days} day ago` : `${days} days ago`;
+  }
+
+  return createdDate.toLocaleString();
+}
+
 export function groupReactions(reactions) {
   const groups = {};
   for (const reaction of reactions) {
@@ -49,7 +83,9 @@ export default function UpdateCard({ update, auth, onUpdated }) {
       </header>
       <p className="update-text">{update.text}</p>
       <footer>
-        <time>{new Date(update.createdAt).toLocaleString()}</time>
+        <time dateTime={update.createdAt}>
+          {formatRelativeTime(update.createdAt)}
+        </time>
         <div className="reactions">
           {Object.entries(reactionGroups).map(([emoji, count]) => (
             <span key={emoji} className="reaction-count">
