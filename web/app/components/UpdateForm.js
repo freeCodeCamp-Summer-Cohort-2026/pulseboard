@@ -91,6 +91,7 @@ export default function UpdateForm({ auth, onPosted }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    setIsPosting(true);
     setText("");
     setStatus("on-track");
 
@@ -110,11 +111,6 @@ export default function UpdateForm({ auth, onPosted }) {
           status,
         });
       } else {
-        if (isNetworkError(err)) {
-          setError(
-            `Failed to connect. The message will be sent when the connection is reestablished.`,
-          );
-        } else {
           setError(err.message);
         }
       }
