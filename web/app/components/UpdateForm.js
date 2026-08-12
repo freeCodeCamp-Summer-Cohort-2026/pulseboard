@@ -13,6 +13,7 @@ export default function UpdateForm({ auth, onPosted }) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState("on-track");
   const [error, setError] = useState(null);
+  const [charCount, setCharCount] = useState(0);
   const [messageQueue, setMessageQueue] = useState([]);
 
   useEffect(() => {
@@ -79,6 +80,9 @@ export default function UpdateForm({ auth, onPosted }) {
 
     try {
       const { update } = await createUpdate({ text, status }, auth.token);
+      setText("");
+      setCharCount(0);
+      setStatus("on-track");
       onPosted(update);
     } catch (err) {
       if (isNetworkError(err)) {
@@ -99,11 +103,15 @@ export default function UpdateForm({ auth, onPosted }) {
       <textarea
         placeholder="What's your status today?"
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value);
+          setCharCount(e.target.value.length);
+        }}
         maxLength={1000}
         required
         disabled={isPosting}
       />
+      <label>{charCount}/1000</label>
       <div className="update-form-row">
         <select
           value={status}

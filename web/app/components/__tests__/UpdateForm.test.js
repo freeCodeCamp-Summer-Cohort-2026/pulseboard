@@ -158,3 +158,15 @@ describe("UpdateForm saving submissions", () => {
     );
   });
 });
+
+describe("CountCharacters", () => {
+  it("puts characters into the form's field", () => {
+    render(<UpdateForm auth={auth} onPosted={() => {}} />);
+
+    fireEvent.change(screen.getByPlaceholderText("What's your status today?"), {
+      target: { value: "Test Status!" },
+    });
+
+    expect(screen.getByText("12/1000")).toBeInTheDocument();
+  });
+});
