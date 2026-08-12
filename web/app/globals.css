@@ -205,49 +205,115 @@ section {
 .update-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .update-card {
+  position: relative;
+  overflow: hidden;
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+}
+
+.update-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+}
+
+.update-card.status-on-track::before {
+  background: var(--status-on-track-bg);
+}
+
+.update-card.status-blocked::before {
+  background: var(--status-blocked-bg);
+}
+
+.update-card.status-done::before {
+  background: var(--status-done-bg);
 }
 
 .update-card header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.poster {
+  display: flex;
   align-items: center;
-  margin-bottom: 0.5rem;
+  gap: 0.65rem;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
+}
+
+.update-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.update-meta time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .author {
   font-weight: bold;
+  font-size: 1rem;
 }
 
 .status-badge {
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
   border-radius: 999px;
+  white-space: nowrap;
   color: var(--status-text);
 }
 
-.status-on-track {
+.status-icon {
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+.status-badge.status-on-track {
   background: var(--status-on-track-bg);
 }
 
-.status-blocked {
+.status-badge.status-blocked {
   background: var(--status-blocked-bg);
 }
 
-.status-done {
+.status-badge.status-done {
   background: var(--status-done-bg);
 }
 
 .update-text {
   white-space: pre-wrap;
-  margin: 0.5rem 0;
+  margin: 0.5rem 0 1rem;
+  line-height: 1.5;
+  color: var(--text-primary);
 }
 
 .update-card footer {
@@ -258,6 +324,9 @@ section {
   color: var(--text-secondary);
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--surface-border);
 }
 
 .reactions {
@@ -309,6 +378,10 @@ section {
   align-items: center;
 }
 
+.reactions {
+  flex-wrap: wrap;
+}
+
 .hint {
   color: var(--text-hint);
   font-style: italic;
@@ -318,7 +391,6 @@ section {
   color: var(--error-text);
   font-size: 0.9rem;
 }
-
 
 /* Loading spinner for UpdateForm */
 .spinner {

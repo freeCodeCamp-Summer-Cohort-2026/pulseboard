@@ -1,5 +1,9 @@
-import {render, screen, fireEvent, waitFor} from "@testing-library/react";
-import UpdateCard, {formatRelativeTime, groupReactions} from "../UpdateCard";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import UpdateCard, {
+  formatRelativeTime,
+  formatTimestamp,
+  groupReactions,
+} from "../UpdateCard";
 import { addReaction, removeReaction } from "@/lib/api";
 
 jest.mock("@/lib/api", () => ({
@@ -93,14 +97,16 @@ describe("UpdateCard", () => {
     expect(screen.getByText("Done")).toBeInTheDocument();
   });
 
-  it("renders a relative timestamp with the original dateTime value", () => {
-    const createdAt = new Date(Date.now() - 30 * 1000).toISOString();
+  it("renders an absolute timestamp with the original dateTime value", () => {
+    const createdAt = "2026-08-11T15:17:00.000Z";
     const recentUpdate = {
       ...update,
       createdAt,
     };
-    render(<UpdateCard update={recentUpdate} auth={null} onUpdated={() => {}} />);
-    const timeElement = screen.getByText("just now");
+    render(
+      <UpdateCard update={recentUpdate} auth={null} onUpdated={() => {}} />,
+    );
+    const timeElement = screen.getByText(formatTimestamp(createdAt));
     expect(timeElement).toHaveAttribute("datetime", createdAt);
   });
 
@@ -123,16 +129,17 @@ describe("UpdateCard", () => {
     const onUpdated = jest.fn();
     render(<UpdateCard update={update} auth={auth} onUpdated={onUpdated} />);
 
-    expect(
-      screen.getByRole("button", { name: "🎉" })
-    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "🎉" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "🎉" }));
 
     await waitFor(() => {
       expect(addReaction).toHaveBeenCalledWith(
         { updateId: "1", emoji: "🎉" },
-        "test-token"
+        "test-token",
       );
     });
     expect(onUpdated).toHaveBeenCalledWith(updatedUpdate);
@@ -151,19 +158,24 @@ describe("UpdateCard", () => {
 
     const onUpdated = jest.fn();
     render(
-      <UpdateCard update={ownReactionUpdate} auth={auth} onUpdated={onUpdated} />
+      <UpdateCard
+        update={ownReactionUpdate}
+        auth={auth}
+        onUpdated={onUpdated}
+      />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "👍" })
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "👍" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "👍" }));
 
     await waitFor(() => {
       expect(removeReaction).toHaveBeenCalledWith(
         { updateId: "1", reactionId: "r1" },
-        "test-token"
+        "test-token",
       );
     });
     expect(addReaction).not.toHaveBeenCalled();
@@ -190,19 +202,20 @@ describe("UpdateCard", () => {
         update={otherUserReactionUpdate}
         auth={auth}
         onUpdated={onUpdated}
-      />
+      />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "👍" })
-    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: "👍" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "👍" }));
 
     await waitFor(() => {
       expect(addReaction).toHaveBeenCalledWith(
         { updateId: "1", emoji: "👍" },
-        "test-token"
+        "test-token",
       );
     });
     expect(removeReaction).not.toHaveBeenCalled();
