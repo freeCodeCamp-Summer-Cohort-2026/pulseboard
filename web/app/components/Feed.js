@@ -47,16 +47,20 @@ export default function Feed({ auth, refreshToken }) {
 
   function handleUpdated(updated) {
     setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
-  };
+  }
 
   function handleShowMyUpdates() {
-    setShowMyUpdates(!showMyUpdates);
-    if (!showMyUpdates){
-      setAuthorFilter(auth.user._id);
-    } else {
-      setAuthorFilter("");
+    try {
+      setShowMyUpdates(!showMyUpdates);
+      if (!showMyUpdates){
+        setAuthorFilter(auth ? auth.user._id : "");
+      } else {
+        setAuthorFilter("");
+      }
+    } catch (err) {
+       setError(err.message);
     }
-  };
+  }
 
   function handleShowMyUpdates() {
     try {
@@ -99,7 +103,6 @@ export default function Feed({ auth, refreshToken }) {
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
-        <div>
         
       </div>
 
