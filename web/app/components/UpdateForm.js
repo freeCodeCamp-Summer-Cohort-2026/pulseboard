@@ -19,13 +19,27 @@ export default function UpdateForm({ auth, onPosted }) {
     const queue = localStorage.getItem("queuedMessages");
     if (queue) {
       setMessageQueue(JSON.parse(queue));
-      console.log(queue);
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("queuedMessages", JSON.stringify(messageQueue));
-  }, [messageQueue.length]);
+    const reconnectInterval = setInterval(() => {
+      if (navigator.onLine && messageQueue.length > 0) {
+        const oldestQueuedMessage = messageQueue[0];
+        retrySending(oldestQueuedMessage);
+      }
+    }, 3000);
+
+    return () => clearInterval(reconnectInterval);
+  }, [messageQueue]);
+
+  function modifyQueue(message) {
+    const newQueue = messageQueue.includes(message)
+      ? messageQueue.filter((msg) => msg.id !== message.id)
+      : [...messageQueue, message];
+    setMessageQueue(newQueue);
+    localStorage.setItem("queuedMessages", JSON.stringify(newQueue));
+  }
 
   if (!auth) {
     return <p className="hint">Log in to post a status update.</p>;
@@ -39,23 +53,43 @@ export default function UpdateForm({ auth, onPosted }) {
     );
   }
 
+  async function retrySending(queuedMessage) {
+    try {
+      const { update } = await createUpdate(
+        { text: queuedMessage.text, status: queuedMessage.status },
+        auth.token,
+      );
+      modifyQueue(queuedMessage);
+      onPosted(update);
+      setError(null);
+    } catch (error) {
+      if (isNetworkError(error)) {
+        setError("Failed to connect.");
+      } else {
+        setError(error.message);
+      }
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    setText("");
+    setStatus("on-track");
 
     // NOTE: no loading state here yet while the request is in flight -
     // see the "add a loading state to the update form" issue.
     try {
       const { update } = await createUpdate({ text, status }, auth.token);
-      setText("");
-      setStatus("on-track");
       onPosted(update);
     } catch (err) {
       if (isNetworkError(err)) {
-        setError(
-          `Failed to connect. The message will be sent when the connection is reestablished.`,
-        );
-        setMessageQueue([...messageQueue, { text, status }]);
+        setError("Failed to connect.");
+        modifyQueue({
+          id: text.concat(Math.round(Math.random() * 100)),
+          text,
+          status,
+        });
       } else {
         setError(err.message);
       }
