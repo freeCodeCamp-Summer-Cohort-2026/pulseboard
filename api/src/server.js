@@ -6,16 +6,20 @@ const { createServer } = require("http");
 const { connectDB } = require("./config/db");
 
 const PORT = process.env.PORT || 4000;
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
 
 async function main() {
   await connectDB();
   console.log("Connected to MongoDB");
 
   const app = createApp();
+
+  //* Setup http server and socket with cors access to frontend
   const httpServer = createServer(app);
   const io = new Server(httpServer, {
     cors: {
-      origin: [`http://localhost:${PORT}`]
+      origin: CORS_ORIGIN,
+      methods: ["GET", "POST"]
     }
   });
 
@@ -26,8 +30,8 @@ async function main() {
     });
   });
 
-  //? Attach io to app.locals or req object?
-  app.locals.io = io;
+  //* Give socket access to middleware
+  app.set("io", io);
 
   //* Once websocket(s) defined then start server
   httpServer.listen(PORT, () => {

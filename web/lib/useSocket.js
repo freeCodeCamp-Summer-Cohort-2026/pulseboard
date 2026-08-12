@@ -1,12 +1,15 @@
 import { useEffect } from "react";
 import io from "socket.io-client";
-import { addReaction } from "./api";
 
-export function useSocket({ addUpdate }) {
+const URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
+export function useSocket({ addUpdate, addReaction }) {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    setSocket(io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"));
+    setSocket(io(URL, {
+      autoConnect: false
+    }));
 
     //* Listen for events + update client feed
     socket.on("POST:update", (update) => {
@@ -26,3 +29,10 @@ export function useSocket({ addUpdate }) {
 
   return socket;
 }
+
+//!-----------------------------------------------------------------------------
+
+// Testing this out as an alternative
+export const socket = io(URL, {
+  autoConnect: false
+});
