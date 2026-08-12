@@ -1,5 +1,11 @@
-import { render, screen } from "@testing-library/react";
-import UpdateCard, { formatRelativeTime, groupReactions } from "../UpdateCard";
+import {render, screen, fireEvent, waitFor} from "@testing-library/react";
+import UpdateCard, {formatRelativeTime, groupReactions} from "../UpdateCard";
+import { addReaction, removeReaction } from "@/lib/api";
+
+jest.mock("@/lib/api", () => ({
+  addReaction: jest.fn(),
+  removeReaction: jest.fn(),
+}));
 
 describe("formatRelativeTime", () => {
   const now = new Date("2026-08-12T12:00:00.000Z").getTime();
@@ -73,6 +79,12 @@ describe("UpdateCard", () => {
     reactions: [{ emoji: "👍", user: { _id: "u2" } }],
   };
 
+  const auth = { token: "test-token", user: { _id: "u1" } };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("renders the update text and author", () => {
     render(<UpdateCard update={update} auth={null} onUpdated={() => {}} />);
 
@@ -96,5 +108,104 @@ describe("UpdateCard", () => {
     render(<UpdateCard update={update} auth={null} onUpdated={() => {}} />);
 
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("adds a reaction when clicking an emoji the user hasn't reacted with", async () => {
+    const updatedUpdate = {
+      ...update,
+      reactions: [
+        ...update.reactions,
+        { _id: "r2", emoji: "🎉", user: { _id: "u1" } },
+      ],
+    };
+    addReaction.mockResolvedValueOnce({ update: updatedUpdate });
+
+    const onUpdated = jest.fn();
+    render(<UpdateCard update={update} auth={auth} onUpdated={onUpdated} />);
+
+    expect(
+      screen.getByRole("button", { name: "🎉" })
+    ).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "🎉" }));
+
+    await waitFor(() => {
+      expect(addReaction).toHaveBeenCalledWith(
+        { updateId: "1", emoji: "🎉" },
+        "test-token"
+      );
+    });
+    expect(onUpdated).toHaveBeenCalledWith(updatedUpdate);
+  });
+
+  it("removes the user's own reaction when clicking that emoji", async () => {
+    const ownReactionUpdate = {
+      ...update,
+      reactions: [{ _id: "r1", emoji: "👍", user: { _id: "u1" } }],
+    };
+    const updatedUpdate = {
+      ...ownReactionUpdate,
+      reactions: [],
+    };
+    removeReaction.mockResolvedValueOnce({ update: updatedUpdate });
+
+    const onUpdated = jest.fn();
+    render(
+      <UpdateCard update={ownReactionUpdate} auth={auth} onUpdated={onUpdated} />
+    );
+
+    expect(
+      screen.getByRole("button", { name: "👍" })
+    ).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "👍" }));
+
+    await waitFor(() => {
+      expect(removeReaction).toHaveBeenCalledWith(
+        { updateId: "1", reactionId: "r1" },
+        "test-token"
+      );
+    });
+    expect(addReaction).not.toHaveBeenCalled();
+    expect(onUpdated).toHaveBeenCalledWith(updatedUpdate);
+  });
+
+  it("adds the user's own reaction when the emoji exists but belongs to another user", async () => {
+    const otherUserReactionUpdate = {
+      ...update,
+      reactions: [{ _id: "r1", emoji: "👍", user: { _id: "u2" } }],
+    };
+    const updatedUpdate = {
+      ...otherUserReactionUpdate,
+      reactions: [
+        ...otherUserReactionUpdate.reactions,
+        { _id: "r2", emoji: "👍", user: { _id: "u1" } },
+      ],
+    };
+    addReaction.mockResolvedValueOnce({ update: updatedUpdate });
+
+    const onUpdated = jest.fn();
+    render(
+      <UpdateCard
+        update={otherUserReactionUpdate}
+        auth={auth}
+        onUpdated={onUpdated}
+      />
+    );
+
+    expect(
+      screen.getByRole("button", { name: "👍" })
+    ).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "👍" }));
+
+    await waitFor(() => {
+      expect(addReaction).toHaveBeenCalledWith(
+        { updateId: "1", emoji: "👍" },
+        "test-token"
+      );
+    });
+    expect(removeReaction).not.toHaveBeenCalled();
+    expect(onUpdated).toHaveBeenCalledWith(updatedUpdate);
   });
 });

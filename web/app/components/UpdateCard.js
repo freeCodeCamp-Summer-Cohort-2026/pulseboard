@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addReaction, deleteUpdate } from "@/lib/api";
+import { addReaction, deleteUpdate, removeReaction } from "@/lib/api";
 
-// Starter emoji set - deliberately small. See the "add a reaction emoji
-// option" good-first-issue for extending this.
 const REACTION_OPTIONS = ["👍", "🎉", "❤️", "🚀"];
 
 const STATUS_LABELS = {
@@ -55,18 +53,41 @@ export function groupReactions(reactions) {
   return groups;
 }
 
+export function findUserReaction(reactions, userId, emoji) {
+  return reactions.find(
+    (reaction) => reaction.emoji === emoji && reaction.user?._id === userId
+  );
+}
+
 export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [error, setError] = useState(null);
   const reactionGroups = groupReactions(update.reactions || []);
 
-  async function handleReact(emoji) {
+  async function handleReactionToggle(emoji) {
     if (!auth) return;
     setError(null);
+
+    const myReaction = findUserReaction(
+      update.reactions || [],
+      auth.user?._id,
+      emoji
+    );
+
     try {
-      const { update: updated } = await addReaction(
-        { updateId: update._id, emoji },
-        auth.token,
-      );
+      let updated;
+
+      if (myReaction) {
+        ({ update: updated } = await removeReaction(
+          { updateId: update._id, reactionId: myReaction._id },
+          auth.token
+        ));
+      } else {
+        ({ update: updated } = await addReaction(
+          { updateId: update._id, emoji },
+          auth.token
+        ));
+      }
+
       onUpdated(updated);
     } catch (err) {
       setError(err.message);
@@ -117,16 +138,24 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
               </span>
             ))}
             {auth &&
-              REACTION_OPTIONS.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="reaction-button"
-                  onClick={() => handleReact(emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
+              REACTION_OPTIONS.map((emoji) => {
+                const myReaction = findUserReaction(
+                  update.reactions || [],
+                  auth.user?._id,
+                  emoji
+                );
+                return (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="reaction-button"
+                    aria-pressed={Boolean(myReaction)}
+                    onClick={() => handleReactionToggle(emoji)}
+                  >
+                    {emoji}
+                  </button>
+                );
+              })}
           </div>
           {auth?.user?.role === "LEAD" && (
             <button className="delete-btn" type="button" onClick={handleDelete}>
