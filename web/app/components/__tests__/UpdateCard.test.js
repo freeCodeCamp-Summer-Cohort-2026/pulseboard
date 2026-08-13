@@ -1,5 +1,5 @@
-import {render, screen, fireEvent, waitFor} from "@testing-library/react";
-import UpdateCard, {formatRelativeTime, groupReactions} from "../UpdateCard";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import UpdateCard, { formatRelativeTime, groupReactions } from "../UpdateCard";
 import { addReaction, removeReaction, editUpdate } from "@/lib/api";
 
 jest.mock("@/lib/api", () => ({
@@ -100,15 +100,18 @@ describe("UpdateCard", () => {
       ...update,
       createdAt,
     };
-    render(<UpdateCard update={recentUpdate} auth={null} onUpdated={() => {}} />);
+    render(
+      <UpdateCard update={recentUpdate} auth={null} onUpdated={() => {}} />,
+    );
     const timeElement = screen.getByText("just now");
     expect(timeElement).toHaveAttribute("datetime", createdAt);
   });
 
-  it("does not show reaction buttons when logged out", () => {
+  it("shows disabled reaction buttons when logged out", () => {
     render(<UpdateCard update={update} auth={null} onUpdated={() => {}} />);
 
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /👍 1/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /🎉 0/i })).toBeDisabled();
   });
 
   it("adds a reaction when clicking an emoji the user hasn't reacted with", async () => {
@@ -124,16 +127,17 @@ describe("UpdateCard", () => {
     const onUpdated = jest.fn();
     render(<UpdateCard update={update} auth={auth} onUpdated={onUpdated} />);
 
-    expect(
-      screen.getByRole("button", { name: "🎉" })
-    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /🎉 0/i })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "🎉" }));
+    fireEvent.click(screen.getByRole("button", { name: /🎉 0/i }));
 
     await waitFor(() => {
       expect(addReaction).toHaveBeenCalledWith(
         { updateId: "1", emoji: "🎉" },
-        "test-token"
+        "test-token",
       );
     });
     expect(onUpdated).toHaveBeenCalledWith(updatedUpdate);
@@ -152,19 +156,24 @@ describe("UpdateCard", () => {
 
     const onUpdated = jest.fn();
     render(
-      <UpdateCard update={ownReactionUpdate} auth={auth} onUpdated={onUpdated} />
+      <UpdateCard
+        update={ownReactionUpdate}
+        auth={auth}
+        onUpdated={onUpdated}
+      />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "👍" })
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /👍 1/i })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "👍" }));
+    fireEvent.click(screen.getByRole("button", { name: /👍 1/i }));
 
     await waitFor(() => {
       expect(removeReaction).toHaveBeenCalledWith(
         { updateId: "1", reactionId: "r1" },
-        "test-token"
+        "test-token",
       );
     });
     expect(addReaction).not.toHaveBeenCalled();
@@ -191,41 +200,42 @@ describe("UpdateCard", () => {
         update={otherUserReactionUpdate}
         auth={auth}
         onUpdated={onUpdated}
-      />
+      />,
     );
 
-    expect(
-      screen.getByRole("button", { name: "👍" })
-    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("button", { name: /👍 1/i })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
 
-    fireEvent.click(screen.getByRole("button", { name: "👍" }));
+    fireEvent.click(screen.getByRole("button", { name: /👍 1/i }));
 
     await waitFor(() => {
       expect(addReaction).toHaveBeenCalledWith(
         { updateId: "1", emoji: "👍" },
-        "test-token"
+        "test-token",
       );
     });
     expect(removeReaction).not.toHaveBeenCalled();
     expect(onUpdated).toHaveBeenCalledWith(updatedUpdate);
   });
 
-    it("shows an edit form when the author clicks Edit", () => {
+  it("shows an edit form when the author clicks Edit", () => {
     render(<UpdateCard update={update} auth={auth} onUpdated={() => {}} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
     expect(screen.getByRole("textbox", { name: /update text/i })).toHaveValue(
-      update.text
+      update.text,
     );
     expect(screen.getByRole("combobox", { name: /status/i })).toHaveValue(
-      update.status
+      update.status,
     );
     expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
   });
 
-    it("saves the edited update and reports the updated update", async () => {
+  it("saves the edited update and reports the updated update", async () => {
     const editedUpdate = {
       ...update,
       text: "Fixed the login page bug",
@@ -236,13 +246,7 @@ describe("UpdateCard", () => {
 
     const onUpdated = jest.fn();
 
-    render(
-      <UpdateCard
-        update={update}
-        auth={auth}
-        onUpdated={onUpdated}
-      />
-    );
+    render(<UpdateCard update={update} auth={auth} onUpdated={onUpdated} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
@@ -266,42 +270,32 @@ describe("UpdateCard", () => {
           text: "Fixed the login page bug",
           status: "on-track",
         },
-        "test-token"
+        "test-token",
       );
     });
 
     expect(onUpdated).toHaveBeenCalledWith(editedUpdate);
   });
 
-    it("does not show Edit to users who do not own the update", () => {
+  it("does not show Edit to users who do not own the update", () => {
     const otherAuth = {
       token: "other-token",
       user: { _id: "u2" },
     };
 
     render(
-      <UpdateCard
-        update={update}
-        auth={otherAuth}
-        onUpdated={() => {}}
-      />
+      <UpdateCard update={update} auth={otherAuth} onUpdated={() => {}} />,
     );
 
     expect(
-      screen.queryByRole("button", { name: "Edit" })
+      screen.queryByRole("button", { name: "Edit" }),
     ).not.toBeInTheDocument();
   });
 
   it("cancels editing without saving the draft", () => {
     const onUpdated = jest.fn();
 
-    render(
-      <UpdateCard
-        update={update}
-        auth={auth}
-        onUpdated={onUpdated}
-      />
-    );
+    render(<UpdateCard update={update} auth={auth} onUpdated={onUpdated} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
@@ -314,7 +308,7 @@ describe("UpdateCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(
-      screen.queryByRole("textbox", { name: /update text/i })
+      screen.queryByRole("textbox", { name: /update text/i }),
     ).not.toBeInTheDocument();
 
     expect(screen.getByText("Shipped the login page")).toBeInTheDocument();
@@ -323,13 +317,7 @@ describe("UpdateCard", () => {
   });
 
   it("resets cancelled edits when entering edit mode again", () => {
-    render(
-      <UpdateCard
-        update={update}
-        auth={auth}
-        onUpdated={() => {}}
-      />
-    );
+    render(<UpdateCard update={update} auth={auth} onUpdated={() => {}} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
@@ -343,13 +331,13 @@ describe("UpdateCard", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
-    expect(
-      screen.getByRole("textbox", { name: /update text/i })
-    ).toHaveValue(update.text);
+    expect(screen.getByRole("textbox", { name: /update text/i })).toHaveValue(
+      update.text,
+    );
 
-    expect(
-      screen.getByRole("combobox", { name: /status/i })
-    ).toHaveValue(update.status);
+    expect(screen.getByRole("combobox", { name: /status/i })).toHaveValue(
+      update.status,
+    );
   });
 
   it("shows an error and keeps the edit form open when saving fails", async () => {
@@ -357,13 +345,7 @@ describe("UpdateCard", () => {
 
     const onUpdated = jest.fn();
 
-    render(
-      <UpdateCard
-        update={update}
-        auth={auth}
-        onUpdated={onUpdated}
-      />
-    );
+    render(<UpdateCard update={update} auth={auth} onUpdated={onUpdated} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 
@@ -379,13 +361,11 @@ describe("UpdateCard", () => {
       expect(screen.getByText("Failed to save update")).toBeInTheDocument();
     });
 
-    expect(
-      screen.getByRole("textbox", { name: /update text/i })
-    ).toHaveValue("Draft with an error");
+    expect(screen.getByRole("textbox", { name: /update text/i })).toHaveValue(
+      "Draft with an error",
+    );
 
-    expect(
-      screen.getByRole("button", { name: "Cancel" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
 
     expect(onUpdated).not.toHaveBeenCalled();
   });
