@@ -29,6 +29,10 @@ const updateSchema = new mongoose.Schema(
       enum: STATUS_VALUES,
       required: true,
     },
+    tags: {
+      type: [String],
+      default: [],
+    },
     reactions: {
       type: [reactionSchema],
       default: [],

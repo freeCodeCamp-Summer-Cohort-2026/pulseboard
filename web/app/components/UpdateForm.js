@@ -15,9 +15,24 @@ export default function UpdateForm({ auth, onPosted }) {
   const [error, setError] = useState(null);
   const [isPosting, setIsPosting] = useState(false);
   const [charCount, setCharCount] = useState(0);
+  const [tagText, setTagText] = useState("");
+  const [tags, setTags] = useState([]);
 
   if (!auth) {
     return <p className="hint">Log in to post a status update.</p>;
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const tag = tagText.trim().toLowerCase().replace(/\s+/g, " ");
+      if (tag && !tags.includes(tag)) {
+        setTags([...tags, tag]);
+        setTagText("");
+      } else {
+        setTagText("");
+      }
+    }
   }
 
   async function handleSubmit(e) {
@@ -26,9 +41,10 @@ export default function UpdateForm({ auth, onPosted }) {
     setIsPosting(true);
 
     try {
-      const { update } = await createUpdate({ text, status }, auth.token);
+      const { update } = await createUpdate({ text, status, tags }, auth.token);
       setText("");
       setCharCount(0);
+      setTags([]);
       setStatus("on-track");
       onPosted(update);
     } catch (err) {
@@ -43,13 +59,35 @@ export default function UpdateForm({ auth, onPosted }) {
       <textarea
         placeholder="What's your status today?"
         value={text}
-        onChange={(e) => {setText(e.target.value)
-                setCharCount(e.target.value.length)}}
+        onChange={(e) => {
+          setText(e.target.value)
+          setCharCount(e.target.value.length)
+        }}
         maxLength={1000}
         required
         disabled={isPosting}
       />
-        <label>{charCount}/1000</label>
+      <label>{charCount}/1000</label>
+      <div className="tags-input-container">
+        {
+          tags?.map((tag) => {
+            return (
+              <div className="tags-pill" key={tag}>
+                <span className="tag-name">{tag}</span>
+                <span className="remove-tag">&times;</span>
+              </div>
+            )
+          })
+        }
+        <input
+          type="text"
+          className="tag-input"
+          placeholder="Type a tag and press Enter"
+          value={tagText}
+          onChange={(e) => setTagText(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+      </div>
       <div className="update-form-row">
         <select
           value={status}
@@ -72,7 +110,7 @@ export default function UpdateForm({ auth, onPosted }) {
             "Post update"
           )}
         </button>
-        
+
       </div>
       {error && <p className="error">{error}</p>}
     </form>

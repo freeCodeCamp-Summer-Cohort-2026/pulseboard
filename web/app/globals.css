@@ -160,12 +160,56 @@ section {
   color: var(--placeholder-text);
 }
 
+.tags-input-container {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: 40px;
+  padding: 0.5rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--control-bg);
+  color: var(--control-text);
+}
+
+.tags-pill {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.58rem;
+  background: var(--reaction-count-bg);
+  color: var(--reaction-count-text);
+}
+
+.tag-name {
+  transform: translateY(-2px);
+}
+
+.remove-tag {
+  cursor: pointer;;
+  transform: translateY(-2px);
+}
+
+.tag-input {
+  border: none;
+  outline: none;
+  flex-grow: 1;
+  padding: 0.5rem 0.5rem;
+  background: var(--reaction-button-bg);
+  color: var(--reaction-button-text);
+}
+
 .update-form label {
   display: flex;
   justify-content: right;
   opacity: 60%;
   font-size: 0.5em;
 }
+
 .update-form-row {
   display: flex;
   gap: 0.5rem;
