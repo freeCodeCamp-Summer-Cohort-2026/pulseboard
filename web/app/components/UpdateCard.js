@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addReaction, deleteUpdate, editUpdate, removeReaction } from "@/lib/api";
+import {
+  addReaction,
+  deleteUpdate,
+  editUpdate,
+  removeReaction,
+} from "@/lib/api";
 
 const REACTION_OPTIONS = ["👍", "🎉", "❤️", "🚀"];
 
@@ -47,15 +52,17 @@ export function formatRelativeTime(createdAt, now = Date.now()) {
 
 export function groupReactions(reactions) {
   const groups = {};
+
   for (const reaction of reactions) {
     groups[reaction.emoji] = (groups[reaction.emoji] || 0) + 1;
   }
+
   return groups;
 }
 
 export function findUserReaction(reactions, userId, emoji) {
   return reactions.find(
-    (reaction) => reaction.emoji === emoji && reaction.user?._id === userId
+    (reaction) => reaction.emoji === emoji && reaction.user?._id === userId,
   );
 }
 
@@ -65,7 +72,12 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [editText, setEditText] = useState(update.text);
   const [editStatus, setEditStatus] = useState(update.status);
   const [saving, setSaving] = useState(false);
+
   const reactionGroups = groupReactions(update.reactions || []);
+
+  const visibleReactions = [
+    ...new Set([...REACTION_OPTIONS, ...Object.keys(reactionGroups)]),
+  ];
 
   useEffect(() => {
     setEditText(update.text);
@@ -74,12 +86,13 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
 
   async function handleReactionToggle(emoji) {
     if (!auth) return;
+
     setError(null);
 
     const myReaction = findUserReaction(
       update.reactions || [],
       auth.user?._id,
-      emoji
+      emoji,
     );
 
     try {
@@ -87,13 +100,19 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
 
       if (myReaction) {
         ({ update: updated } = await removeReaction(
-          { updateId: update._id, reactionId: myReaction._id },
-          auth.token
+          {
+            updateId: update._id,
+            reactionId: myReaction._id,
+          },
+          auth.token,
         ));
       } else {
         ({ update: updated } = await addReaction(
-          { updateId: update._id, emoji },
-          auth.token
+          {
+            updateId: update._id,
+            emoji,
+          },
+          auth.token,
         ));
       }
 
@@ -112,6 +131,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
 
     try {
       const deletedId = await deleteUpdate(deleteId, auth.token);
+
       if (!deletedId) {
         setError("Failed to delete the update. Please try again.");
       }
@@ -142,7 +162,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
           text: editText,
           status: editStatus,
         },
-        auth.token
+        auth.token,
       );
 
       onUpdated(updated);
@@ -162,6 +182,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
             {update.author?.displayName || "Unknown"}
           </span>
         </div>
+
         {isEditing ? (
           <div className="edit-field">
             <label htmlFor="edit-update-status">Status</label>
@@ -181,6 +202,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
           </span>
         )}
       </header>
+
       {isEditing ? (
         <div className="edit-form">
           <label htmlFor="edit-update-text">Update text</label>
@@ -193,37 +215,41 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
       ) : (
         <p className="update-text">{update.text}</p>
       )}
+
       <footer>
         <time dateTime={update.createdAt}>
           {formatRelativeTime(update.createdAt)}
         </time>
+
         <div className="update-actions">
           <div className="reactions">
-            {Object.entries(reactionGroups).map(([emoji, count]) => (
-              <span key={emoji} className="reaction-count">
-                {emoji} {count}
-              </span>
-            ))}
-            {auth &&
-              REACTION_OPTIONS.map((emoji) => {
-                const myReaction = findUserReaction(
-                  update.reactions || [],
-                  auth.user?._id,
-                  emoji
-                );
-                return (
-                  <button
-                    key={emoji}
-                    type="button"
-                    className="reaction-button"
-                    aria-pressed={Boolean(myReaction)}
-                    onClick={() => handleReactionToggle(emoji)}
-                  >
-                    {emoji}
-                  </button>
-                );
-              })}
+            {visibleReactions.map((emoji) => {
+              const count = reactionGroups[emoji] || 0;
+
+              const myReaction = auth
+                ? findUserReaction(
+                    update.reactions || [],
+                    auth.user?._id,
+                    emoji,
+                  )
+                : null;
+
+              return (
+                <button
+                  key={emoji}
+                  type="button"
+                  className={`reaction-button ${myReaction ? "active" : ""}`}
+                  aria-pressed={Boolean(myReaction)}
+                  disabled={!auth}
+                  onClick={() => handleReactionToggle(emoji)}
+                >
+                  <span className="reaction-emoji">{emoji}</span>
+                  <span className="reaction-count">{count}</span>
+                </button>
+              );
+            })}
           </div>
+
           {isEditing ? (
             <div className="edit-actions">
               <button
@@ -234,6 +260,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
               >
                 {saving ? "Saving..." : "Save"}
               </button>
+
               <button
                 type="button"
                 className="cancel-btn"
@@ -253,6 +280,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
                   Edit
                 </button>
               )}
+
               {auth?.user?.role === "LEAD" && (
                 <button
                   className="delete-btn"
@@ -266,6 +294,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
           )}
         </div>
       </footer>
+
       {error && <p className="error">{error}</p>}
     </article>
   );
