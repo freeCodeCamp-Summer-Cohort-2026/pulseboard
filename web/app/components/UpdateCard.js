@@ -38,20 +38,20 @@ export default function UpdateCard({ update, auth, onUpdated }) {
       setError(err.message);
     }
   }
-const days_since_last_post = (update) => {
+const daysSinceLastPost = (update) => {
    let datetime= new Date (update.createdAt)
    let now = new Date();
    let time =( now - datetime)
-   let convert_days= Math.floor((time/(1000 * 60 * 60 *24)))
-   let days_final_past= "Posted " + ((convert_days)).toString() + " days ago"
+   let convertDays= Math.floor((time/(1000 * 60 * 60 *24)))
+   let daysFinalPast= "Posted " + ((convertDays)).toString() + " days ago"
     
-   if ( convert_days === 0){
+   if ( convertDays === 0){
      return "Posted today"
      
-   }else if(convert_days === 1){
+   }else if(convertDays === 1){
     return  "Posted 1 day ago"
    }else{
-     return days_final_past
+     return daysFinalPast
    }
 
  
@@ -61,11 +61,12 @@ const days_since_last_post = (update) => {
     }
   return (
     <article className="update-card">
-      <span className={`status-badge `}>{days_since_last_post(update)}</span>
+      
       <header >
         <span className="author">
           {update.author?.displayName || "Unknown"}
         </span>
+         <span className="posted-badge">{daysSinceLastPost(update)}</span>
         <span className={`status-badge status-${update.status}`}>
           {STATUS_LABELS[update.status] || update.status}
         </span>

@@ -141,7 +141,13 @@ section {
 .author {
   font-weight: bold;
 }
-
+.posted-badge{
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  color: black;
+  background:#f3f4f6;
+}
 .status-badge {
   font-size: 0.75rem;
   padding: 0.2rem 0.5rem;
