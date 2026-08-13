@@ -51,15 +51,6 @@ export function formatRelativeTime(createdAt, now = Date.now()) {
   return createdDate.toLocaleString();
 }
 
-export function formatTimestamp(createdAt) {
-  return new Date(createdAt).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 export function groupReactions(reactions) {
   const groups = {};
   for (const reaction of reactions) {
@@ -150,7 +141,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
               {update.author?.displayName || "Unknown"}
             </span>
             <time dateTime={update.createdAt}>
-              {formatTimestamp(update.createdAt)}
+              {formatRelativeTime(update.createdAt)}
             </time>
           </div>
         </div>

@@ -1,9 +1,5 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import UpdateCard, {
-  formatRelativeTime,
-  formatTimestamp,
-  groupReactions,
-} from "../UpdateCard";
+import UpdateCard, { formatRelativeTime, groupReactions } from "../UpdateCard";
 import { addReaction, removeReaction } from "@/lib/api";
 
 jest.mock("@/lib/api", () => ({
@@ -97,8 +93,8 @@ describe("UpdateCard", () => {
     expect(screen.getByText("Done")).toBeInTheDocument();
   });
 
-  it("renders an absolute timestamp with the original dateTime value", () => {
-    const createdAt = "2026-08-11T15:17:00.000Z";
+  it("renders a relative timestamp with the original dateTime value", () => {
+    const createdAt = new Date(Date.now() - 30 * 1000).toISOString();
     const recentUpdate = {
       ...update,
       createdAt,
@@ -106,7 +102,7 @@ describe("UpdateCard", () => {
     render(
       <UpdateCard update={recentUpdate} auth={null} onUpdated={() => {}} />,
     );
-    const timeElement = screen.getByText(formatTimestamp(createdAt));
+    const timeElement = screen.getByText("just now");
     expect(timeElement).toHaveAttribute("datetime", createdAt);
   });
 
