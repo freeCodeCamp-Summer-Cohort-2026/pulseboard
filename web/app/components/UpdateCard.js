@@ -16,6 +16,12 @@ const STATUS_LABELS = {
   done: "Done",
 };
 
+const STATUS_ICONS = {
+  "on-track": "→",
+  blocked: "✕",
+  done: "✓",
+};
+
 const MS_PER_MINUTE = 60 * 1000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
@@ -52,11 +58,9 @@ export function formatRelativeTime(createdAt, now = Date.now()) {
 
 export function groupReactions(reactions) {
   const groups = {};
-
   for (const reaction of reactions) {
     groups[reaction.emoji] = (groups[reaction.emoji] || 0) + 1;
   }
-
   return groups;
 }
 
@@ -72,7 +76,6 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [editText, setEditText] = useState(update.text);
   const [editStatus, setEditStatus] = useState(update.status);
   const [saving, setSaving] = useState(false);
-
   const reactionGroups = groupReactions(update.reactions || []);
 
   const visibleReactions = [
@@ -86,7 +89,6 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
 
   async function handleReactionToggle(emoji) {
     if (!auth) return;
-
     setError(null);
 
     const myReaction = findUserReaction(
@@ -100,18 +102,12 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
 
       if (myReaction) {
         ({ update: updated } = await removeReaction(
-          {
-            updateId: update._id,
-            reactionId: myReaction._id,
-          },
+          { updateId: update._id, reactionId: myReaction._id },
           auth.token,
         ));
       } else {
         ({ update: updated } = await addReaction(
-          {
-            updateId: update._id,
-            emoji,
-          },
+          { updateId: update._id, emoji },
           auth.token,
         ));
       }
@@ -131,7 +127,6 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
 
     try {
       const deletedId = await deleteUpdate(deleteId, auth.token);
-
       if (!deletedId) {
         setError("Failed to delete the update. Please try again.");
       }
@@ -175,14 +170,31 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   }
 
   return (
-    <article className="update-card">
+    <article className={`update-card status-${update.status}`}>
       <header>
-        <div>
-          <span className="author">
-            {update.author?.displayName || "Unknown"}
+        <div className="poster">
+          <span className="avatar" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+            </svg>
           </span>
+          <div className="update-meta">
+            <span className="author">
+              {update.author?.displayName || "Unknown"}
+            </span>
+            <time dateTime={update.createdAt}>
+              {formatRelativeTime(update.createdAt)}
+            </time>
+          </div>
         </div>
-
         {isEditing ? (
           <div className="edit-field">
             <label htmlFor="edit-update-status">Status</label>
@@ -198,11 +210,13 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
           </div>
         ) : (
           <span className={`status-badge status-${update.status}`}>
+            <span className="status-icon" aria-hidden="true">
+              {STATUS_ICONS[update.status]}
+            </span>
             {STATUS_LABELS[update.status] || update.status}
           </span>
         )}
       </header>
-
       {isEditing ? (
         <div className="edit-form">
           <label htmlFor="edit-update-text">Update text</label>
@@ -215,86 +229,71 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
       ) : (
         <p className="update-text">{update.text}</p>
       )}
-
       <footer>
-        <time dateTime={update.createdAt}>
-          {formatRelativeTime(update.createdAt)}
-        </time>
+        <div className="reactions">
+          {visibleReactions.map((emoji) => {
+            const count = reactionGroups[emoji] || 0;
 
-        <div className="update-actions">
-          <div className="reactions">
-            {visibleReactions.map((emoji) => {
-              const count = reactionGroups[emoji] || 0;
+            const myReaction = auth
+              ? findUserReaction(update.reactions || [], auth.user?._id, emoji)
+              : null;
 
-              const myReaction = auth
-                ? findUserReaction(
-                    update.reactions || [],
-                    auth.user?._id,
-                    emoji,
-                  )
-                : null;
-
-              return (
-                <button
-                  key={emoji}
-                  type="button"
-                  className={`reaction-button ${myReaction ? "active" : ""}`}
-                  aria-pressed={Boolean(myReaction)}
-                  disabled={!auth}
-                  onClick={() => handleReactionToggle(emoji)}
-                >
-                  <span className="reaction-emoji">{emoji}</span>
-                  <span className="reaction-count">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-
-          {isEditing ? (
-            <div className="edit-actions">
+            return (
               <button
+                key={emoji}
                 type="button"
-                className="save-btn"
-                onClick={handleEditSave}
-                disabled={saving}
+                className={`reaction-button ${myReaction ? "active" : ""}`}
+                aria-pressed={Boolean(myReaction)}
+                disabled={!auth}
+                onClick={() => handleReactionToggle(emoji)}
               >
-                {saving ? "Saving..." : "Save"}
+                <span className="reaction-emoji">{emoji}</span>
+                <span className="reaction-count">{count}</span>
               </button>
-
-              <button
-                type="button"
-                className="cancel-btn"
-                onClick={() => setIsEditing(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <>
-              {auth?.user?._id === update.author?._id && (
-                <button
-                  type="button"
-                  className="edit-btn"
-                  onClick={handleEditStart}
-                >
-                  Edit
-                </button>
-              )}
-
-              {auth?.user?.role === "LEAD" && (
-                <button
-                  className="delete-btn"
-                  type="button"
-                  onClick={handleDelete}
-                >
-                  Delete
-                </button>
-              )}
-            </>
-          )}
+            );
+          })}
         </div>
+        {isEditing ? (
+          <div className="edit-actions">
+            <button
+              type="button"
+              className="save-btn"
+              onClick={handleEditSave}
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              className="cancel-btn"
+              onClick={() => setIsEditing(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <>
+            {auth?.user?._id === update.author?._id && (
+              <button
+                type="button"
+                className="edit-btn"
+                onClick={handleEditStart}
+              >
+                Edit
+              </button>
+            )}
+            {auth?.user?.role === "LEAD" && (
+              <button
+                className="delete-btn"
+                type="button"
+                onClick={handleDelete}
+              >
+                Delete
+              </button>
+            )}
+          </>
+        )}
       </footer>
-
       {error && <p className="error">{error}</p>}
     </article>
   );
