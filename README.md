@@ -1,4 +1,4 @@
-# PulseBoard
+p# PulseBoard
 
 PulseBoard is a lightweight team status/standup app. Team members post daily
 text updates tagged with a status (`on-track`, `blocked`, or `done`), react to
@@ -83,6 +83,33 @@ cd web
 npm install
 npm run dev
 ```
+
+## Screenshots
+
+Opening screen in default (light) mode
+
+![Opening screen](/docs/screenshots/DefaultOpeningScreen.png)
+
+
+Registration section:
+
+![Registration screen](/docs/screenshots/RegistrationFields.png)
+
+
+Log in section:
+
+![Login screen](/docs/screenshots/LoginFields.png)
+
+
+Posting an update:
+
+![Posting an update](/docs/screenshots/PostAnUpdate.png)
+
+
+Sharing a reaction (emoji) to otther posts
+
+![Sharing a reaction to other posts](/docs/screenshots/PostAfterSharingHeartReaction.png)
+
 
 ## Architecture
 
