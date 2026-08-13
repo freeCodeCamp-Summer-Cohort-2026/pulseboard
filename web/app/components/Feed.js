@@ -20,12 +20,6 @@ export default function Feed({ auth, refreshToken }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    console.log("filters:", {
-      statusFilter,
-      authorFilter,
-      tagFilter,
-      sortOrder,
-    });
     listUpdates({
       status: statusFilter || undefined,
       author: authorFilter || undefined,

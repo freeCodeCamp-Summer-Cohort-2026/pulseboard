@@ -74,7 +74,7 @@ export default function UpdateForm({ auth, onPosted }) {
             return (
               <div className="tags-pill" key={tag}>
                 <span className="tag-name">{tag}</span>
-                <span className="remove-tag">&times;</span>
+                <span className="remove-tag" onClick={(e) => setTags(tags.filter(t => t !== tag))}>&times;</span>
               </div>
             )
           })
