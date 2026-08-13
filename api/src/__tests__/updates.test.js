@@ -1,5 +1,6 @@
 const request = require("supertest");
 const { createApp } = require("../app");
+const User = require("../models/User");
 const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
 
 const app = createApp();
@@ -20,6 +21,12 @@ afterEach(async () => {
 });
 
 async function registerUser(overrides = {}) {
+  if ("role" in overrides) {
+    throw new Error(
+      "registerUser() must not pass role through the public endpoint; " +
+        "promote the user via User.findOneAndUpdate in test setup instead.",
+    );
+  }
   const res = await request(app)
     .post("/api/auth/register")
     .send({
@@ -90,7 +97,9 @@ describe("POST /api/updates", () => {
 
     const res = await makeRequest();
     expect(res.status).toBe(429);
-    expect(res.body.error).toBe("Too many updates posted. Please wait a minute before posting again.");
+    expect(res.body.error).toBe(
+      "Too many updates posted. Please wait a minute before posting again.",
+    );
   });
 });
 
@@ -157,11 +166,12 @@ describe("GET /api/updates", () => {
   });
 
   it("rejects an invalid sort value", async () => {
-    const res = await request(app)
-      .get("/api/updates?sort=popular");
+    const res = await request(app).get("/api/updates?sort=popular");
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toBe("sort must be one of: newest, oldest, most-reactions");
+    expect(res.body.error).toBe(
+      "sort must be one of: newest, oldest, most-reactions",
+    );
   });
 
   it("filters by status", async () => {
@@ -203,6 +213,61 @@ describe("GET /api/updates", () => {
     expect(res.status).toBe(200);
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].text).toBe("Mine");
+  });
+});
+
+describe("DELETE /api/updates/:id", () => {
+  it("allows a LEAD to delete any update", async () => {
+    // Promote the user directly via the model — the public /register
+    // endpoint always creates a MEMBER. The original JWT was issued
+    // with role: "MEMBER" baked into the payload, and requireAuth
+    // trusts the JWT over the DB, so we log back in to get a token
+    // that reflects the promotion.
+    await User.findOneAndUpdate(
+      { email: "author@example.com" },
+      { role: "LEAD" },
+    );
+
+    const loginRes = await request(app).post("/api/auth/login").send({
+      email: "author@example.com",
+      password: "password123",
+    });
+    const leadToken = loginRes.body.token;
+
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({ text: "Delete me", status: "done" });
+
+    const updateId = createRes.body.update._id;
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${leadToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toBe(updateId);
+  });
+
+  it("returns 403 when a MEMBER tries to delete another user's update", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Protected update", status: "on-track" });
+
+    const updateId = createRes.body.update._id;
+
+    const otherMember = await registerUser({
+      email: "member2@example.com",
+      displayName: "Member Two",
+    });
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${otherMember.token}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message || res.body.error).toMatch(/access denied/i);
   });
 });
 
@@ -319,9 +384,7 @@ describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
     const fakeReactionId = "74b7f3f3f3f3f3f3f3f3f3f3";
 
     const res = await request(app)
-      .delete(
-        `/api/updates/${fakeUpdateId}/reactions/${fakeReactionId}`
-      )
+      .delete(`/api/updates/${fakeUpdateId}/reactions/${fakeReactionId}`)
       .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(404);
@@ -346,5 +409,138 @@ describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
 
     expect(res.status).toBe(404);
     expect(res.body.error).toBe("Reaction not found");
+  });
+});
+
+describe("PATCH /api/updates/:id", () => {
+  it("allows the author to edit their own update", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Original update",
+        status: "on-track",
+      });
+
+    const updateId = createRes.body.update._id;
+
+    const res = await request(app)
+      .patch(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Updated update",
+        status: "done",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.update.text).toBe("Updated update");
+    expect(res.body.update.status).toBe("done");
+    expect(res.body.update._id).toBe(updateId);
+    expect(res.body.update.author._id).toBe(userId);
+  });
+
+  it("rejects another user from editing the update", async () => {
+  const createRes = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Original update",
+      status: "on-track",
+    });
+
+  const updateId = createRes.body.update._id;
+
+  const other = await registerUser({
+    email: "editor@example.com",
+    displayName: "Other Editor",
+  });
+
+  const res = await request(app)
+    .patch(`/api/updates/${updateId}`)
+    .set("Authorization", `Bearer ${other.token}`)
+    .send({
+      text: "I should not be able to change this",
+      status: "done",
+    });
+
+  expect(res.status).toBe(403);
+  expect(res.body.error).toBe("You can only edit your own updates");
+  });
+
+  it("returns 404 when the update does not exist", async () => {
+  const res = await request(app)
+    .patch("/api/updates/64b7f3f3f3f3f3f3f3f3f3f3")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Updated text",
+      status: "done",
+    });
+
+  expect(res.status).toBe(404);
+  expect(res.body.error).toBe("Update not found");
+  });
+
+  it("rejects a patch with no fields to update", async () => {
+  const createRes = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Original update",
+      status: "on-track",
+    });
+
+  const updateId = createRes.body.update._id;
+
+  const res = await request(app)
+    .patch(`/api/updates/${updateId}`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({});
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe("At least one of text or status is required");
+  });
+
+  it("rejects an invalid status", async () => {
+  const createRes = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Original update",
+      status: "on-track",
+    });
+
+  const updateId = createRes.body.update._id;
+
+  const res = await request(app)
+    .patch(`/api/updates/${updateId}`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      status: "not-a-real-status",
+    });
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe("status must be one of: on-track, blocked, done");
+  });
+
+  it("rejects an empty text value", async () => {
+  const createRes = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Original update",
+      status: "on-track",
+    });
+
+  const updateId = createRes.body.update._id;
+
+  const res = await request(app)
+    .patch(`/api/updates/${updateId}`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "   ",
+    });
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe("text is required and cannot be empty");
   });
 });

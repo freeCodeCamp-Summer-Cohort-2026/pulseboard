@@ -85,7 +85,11 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
         minLength={8}
       />
       <button type="submit" disabled={loading}>
-        {loading ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}
+        {loading
+          ? "Please wait..."
+          : mode === "login"
+            ? "Log in"
+            : "Create account"}
       </button>
       {error && <p className="error">{error}</p>}
     </form>
