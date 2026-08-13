@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { addReaction, deleteUpdate, editUpdate, removeReaction } from "@/lib/api";
+import {
+  addReaction,
+  deleteUpdate,
+  editUpdate,
+  removeReaction,
+} from "@/lib/api";
 
 const REACTION_OPTIONS = ["👍", "🎉", "❤️", "🚀"];
 
@@ -9,6 +14,12 @@ const STATUS_LABELS = {
   "on-track": "On track",
   blocked: "Blocked",
   done: "Done",
+};
+
+const STATUS_ICONS = {
+  "on-track": "→",
+  blocked: "✕",
+  done: "✓",
 };
 
 const MS_PER_MINUTE = 60 * 1000;
@@ -55,7 +66,7 @@ export function groupReactions(reactions) {
 
 export function findUserReaction(reactions, userId, emoji) {
   return reactions.find(
-    (reaction) => reaction.emoji === emoji && reaction.user?._id === userId
+    (reaction) => reaction.emoji === emoji && reaction.user?._id === userId,
   );
 }
 
@@ -66,6 +77,10 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [editStatus, setEditStatus] = useState(update.status);
   const [saving, setSaving] = useState(false);
   const reactionGroups = groupReactions(update.reactions || []);
+
+  const visibleReactions = [
+    ...new Set([...REACTION_OPTIONS, ...Object.keys(reactionGroups)]),
+  ];
 
   useEffect(() => {
     setEditText(update.text);
@@ -79,7 +94,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
     const myReaction = findUserReaction(
       update.reactions || [],
       auth.user?._id,
-      emoji
+      emoji,
     );
 
     try {
@@ -88,12 +103,12 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
       if (myReaction) {
         ({ update: updated } = await removeReaction(
           { updateId: update._id, reactionId: myReaction._id },
-          auth.token
+          auth.token,
         ));
       } else {
         ({ update: updated } = await addReaction(
           { updateId: update._id, emoji },
-          auth.token
+          auth.token,
         ));
       }
 
@@ -142,7 +157,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
           text: editText,
           status: editStatus,
         },
-        auth.token
+        auth.token,
       );
 
       onUpdated(updated);
@@ -155,12 +170,30 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   }
 
   return (
-    <article className="update-card">
+    <article className={`update-card status-${update.status}`}>
       <header>
-        <div>
-          <span className="author">
-            {update.author?.displayName || "Unknown"}
+        <div className="poster">
+          <span className="avatar" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+            </svg>
           </span>
+          <div className="update-meta">
+            <span className="author">
+              {update.author?.displayName || "Unknown"}
+            </span>
+            <time dateTime={update.createdAt}>
+              {formatRelativeTime(update.createdAt)}
+            </time>
+          </div>
         </div>
         {isEditing ? (
           <div className="edit-field">
@@ -177,6 +210,9 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
           </div>
         ) : (
           <span className={`status-badge status-${update.status}`}>
+            <span className="status-icon" aria-hidden="true">
+              {STATUS_ICONS[update.status]}
+            </span>
             {STATUS_LABELS[update.status] || update.status}
           </span>
         )}
@@ -194,77 +230,69 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
         <p className="update-text">{update.text}</p>
       )}
       <footer>
-        <time dateTime={update.createdAt}>
-          {formatRelativeTime(update.createdAt)}
-        </time>
-        <div className="update-actions">
-          <div className="reactions">
-            {Object.entries(reactionGroups).map(([emoji, count]) => (
-              <span key={emoji} className="reaction-count">
-                {emoji} {count}
-              </span>
-            ))}
-            {auth &&
-              REACTION_OPTIONS.map((emoji) => {
-                const myReaction = findUserReaction(
-                  update.reactions || [],
-                  auth.user?._id,
-                  emoji
-                );
-                return (
-                  <button
-                    key={emoji}
-                    type="button"
-                    className="reaction-button"
-                    aria-pressed={Boolean(myReaction)}
-                    onClick={() => handleReactionToggle(emoji)}
-                  >
-                    {emoji}
-                  </button>
-                );
-              })}
-          </div>
-          {isEditing ? (
-            <div className="edit-actions">
+        <div className="reactions">
+          {visibleReactions.map((emoji) => {
+            const count = reactionGroups[emoji] || 0;
+
+            const myReaction = auth
+              ? findUserReaction(update.reactions || [], auth.user?._id, emoji)
+              : null;
+
+            return (
               <button
+                key={emoji}
                 type="button"
-                className="save-btn"
-                onClick={handleEditSave}
-                disabled={saving}
+                className={`reaction-button ${myReaction ? "active" : ""}`}
+                aria-pressed={Boolean(myReaction)}
+                disabled={!auth}
+                onClick={() => handleReactionToggle(emoji)}
               >
-                {saving ? "Saving..." : "Save"}
+                <span className="reaction-emoji">{emoji}</span>
+                <span className="reaction-count">{count}</span>
               </button>
-              <button
-                type="button"
-                className="cancel-btn"
-                onClick={() => setIsEditing(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <>
-              {auth?.user?._id === update.author?._id && (
-                <button
-                  type="button"
-                  className="edit-btn"
-                  onClick={handleEditStart}
-                >
-                  Edit
-                </button>
-              )}
-              {auth?.user?.role === "LEAD" && (
-                <button
-                  className="delete-btn"
-                  type="button"
-                  onClick={handleDelete}
-                >
-                  Delete
-                </button>
-              )}
-            </>
-          )}
+            );
+          })}
         </div>
+        {isEditing ? (
+          <div className="edit-actions">
+            <button
+              type="button"
+              className="save-btn"
+              onClick={handleEditSave}
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <button
+              type="button"
+              className="cancel-btn"
+              onClick={() => setIsEditing(false)}
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <>
+            {auth?.user?._id === update.author?._id && (
+              <button
+                type="button"
+                className="edit-btn"
+                onClick={handleEditStart}
+              >
+                Edit
+              </button>
+            )}
+            {auth?.user?.role === "LEAD" && (
+              <button
+                className="delete-btn"
+                type="button"
+                onClick={handleDelete}
+              >
+                Delete
+              </button>
+            )}
+          </>
+        )}
       </footer>
       {error && <p className="error">{error}</p>}
     </article>

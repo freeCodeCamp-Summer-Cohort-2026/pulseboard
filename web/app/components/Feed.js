@@ -8,6 +8,7 @@ const STATUS_OPTIONS = ["on-track", "blocked", "done"];
 
 export default function Feed({ auth, refreshToken }) {
   const [updates, setUpdates] = useState([]);
+  const [allUpdates, setAllUpdates] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [authorFilter, setAuthorFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
@@ -37,13 +38,32 @@ export default function Feed({ auth, refreshToken }) {
     };
   }, [statusFilter, authorFilter, sortOrder, refreshToken]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    listUpdates()
+      .then(({ updates: fetched }) => {
+        if (!cancelled) setAllUpdates(fetched);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshToken]);
+
   const authors = useMemo(() => {
     const map = new Map();
-    for (const u of updates) {
-      if (u.author?._id) map.set(u.author._id, u.author.displayName);
+
+    for (const u of allUpdates) {
+      if (u.author?._id) {
+        map.set(u.author._id, u.author.displayName);
+      }
     }
     return Array.from(map.entries());
-  }, [updates]);
+  }, [allUpdates]);
 
   function handleUpdated(updated) {
     setUpdates((prev) =>
