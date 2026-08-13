@@ -20,6 +20,12 @@ const createUpdateLimiter = rateLimit({
 router.get("/", async (req, res) => {
   try {
     const { author, status, sort } = req.query;
+
+    const page = Math.max(parseInt(req.query.page,10)||1,1);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit,10)||10,1),
+    50
+  );
     const filter = {};
 
     if (author) {
@@ -46,14 +52,24 @@ router.get("/", async (req, res) => {
     const sortDirection = sort === "oldest" ? 1 : -1;
     const updates = await Update.find(filter)
       .sort({ createdAt: sortDirection })
+      .skip((page - 1)*limit)
+      .limit(limit)
       .populate("author", "displayName email")
       .populate("reactions.user", "displayName email");
 
     if (sort === "most-reactions") {
       updates.sort((a, b) => b.reactions.length - a.reactions.length);
     }
-
-    return res.json({ updates });
+    const total = await Update.countDocuments(filter);
+    const hasNextPage = page * limit<total;
+    return res.json({
+      updates,
+      pagination:{
+        page,
+        limit,
+        hasNextPage,
+      },
+    });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch updates" });
   }
