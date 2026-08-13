@@ -78,6 +78,10 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [saving, setSaving] = useState(false);
   const reactionGroups = groupReactions(update.reactions || []);
 
+  const visibleReactions = [
+    ...new Set([...REACTION_OPTIONS, ...Object.keys(reactionGroups)]),
+  ];
+
   useEffect(() => {
     setEditText(update.text);
     setEditStatus(update.status);
@@ -227,30 +231,27 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
       )}
       <footer>
         <div className="reactions">
-          {Object.entries(reactionGroups).map(([emoji, count]) => (
-            <span key={emoji} className="reaction-count">
-              {emoji} {count}
-            </span>
-          ))}
-          {auth &&
-            REACTION_OPTIONS.map((emoji) => {
-              const myReaction = findUserReaction(
-                update.reactions || [],
-                auth.user?._id,
-                emoji,
-              );
-              return (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="reaction-button"
-                  aria-pressed={Boolean(myReaction)}
-                  onClick={() => handleReactionToggle(emoji)}
-                >
-                  {emoji}
-                </button>
-              );
-            })}
+          {visibleReactions.map((emoji) => {
+            const count = reactionGroups[emoji] || 0;
+
+            const myReaction = auth
+              ? findUserReaction(update.reactions || [], auth.user?._id, emoji)
+              : null;
+
+            return (
+              <button
+                key={emoji}
+                type="button"
+                className={`reaction-button ${myReaction ? "active" : ""}`}
+                aria-pressed={Boolean(myReaction)}
+                disabled={!auth}
+                onClick={() => handleReactionToggle(emoji)}
+              >
+                <span className="reaction-emoji">{emoji}</span>
+                <span className="reaction-count">{count}</span>
+              </button>
+            );
+          })}
         </div>
         {isEditing ? (
           <div className="edit-actions">
