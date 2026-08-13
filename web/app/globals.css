@@ -358,7 +358,12 @@ section {
 .update-form select:focus-visible,
 .update-form button:focus-visible,
 .filter-bar select:focus-visible,
-.reaction-button:focus-visible {
+.reaction-button:focus-visible,
+.edit-field select:focus-visible,
+.edit-form textarea:focus-visible,
+.edit-btn:focus-visible,
+.save-btn:focus-visible,
+.cancel-btn:focus-visible {
   outline: 2px solid var(--focus-indicator);
   outline-offset: 2px;
 }
@@ -417,6 +422,83 @@ section {
   gap: 0.4rem;
 }
 
+/* Edit UI */
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+
+.edit-field label,
+.edit-form label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.edit-field select {
+  padding: 0.5rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--control-text);
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.edit-form textarea {
+  min-height: 80px;
+  padding: 0.5rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--control-bg);
+  color: var(--control-text);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.edit-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--control-text);
+  cursor: pointer;
+}
+
+.save-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  cursor: pointer;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cancel-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--control-text);
+  cursor: pointer;
+}
 
 /* Reaction button style */
 .reaction-button.active {
