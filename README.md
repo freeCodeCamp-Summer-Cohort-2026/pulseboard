@@ -1,4 +1,4 @@
-p# PulseBoard
+# PulseBoard
 
 PulseBoard is a lightweight team status/standup app. Team members post daily
 text updates tagged with a status (`on-track`, `blocked`, or `done`), react to
