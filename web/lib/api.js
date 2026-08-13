@@ -62,6 +62,14 @@ export function createUpdate({ text, status }, token) {
   });
 }
 
+export function editUpdate(updateId, { text, status }, token) {
+  return request(`/api/updates/${updateId}`, {
+    method: "PATCH",
+    body: { text, status },
+    token,
+  });
+}
+
 export function deleteUpdate(updateId, token) {
   return request(`/api/updates/${updateId}`, {
     method: "DELETE",

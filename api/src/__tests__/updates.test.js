@@ -411,3 +411,136 @@ describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
     expect(res.body.error).toBe("Reaction not found");
   });
 });
+
+describe("PATCH /api/updates/:id", () => {
+  it("allows the author to edit their own update", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Original update",
+        status: "on-track",
+      });
+
+    const updateId = createRes.body.update._id;
+
+    const res = await request(app)
+      .patch(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Updated update",
+        status: "done",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.update.text).toBe("Updated update");
+    expect(res.body.update.status).toBe("done");
+    expect(res.body.update._id).toBe(updateId);
+    expect(res.body.update.author._id).toBe(userId);
+  });
+
+  it("rejects another user from editing the update", async () => {
+  const createRes = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Original update",
+      status: "on-track",
+    });
+
+  const updateId = createRes.body.update._id;
+
+  const other = await registerUser({
+    email: "editor@example.com",
+    displayName: "Other Editor",
+  });
+
+  const res = await request(app)
+    .patch(`/api/updates/${updateId}`)
+    .set("Authorization", `Bearer ${other.token}`)
+    .send({
+      text: "I should not be able to change this",
+      status: "done",
+    });
+
+  expect(res.status).toBe(403);
+  expect(res.body.error).toBe("You can only edit your own updates");
+  });
+
+  it("returns 404 when the update does not exist", async () => {
+  const res = await request(app)
+    .patch("/api/updates/64b7f3f3f3f3f3f3f3f3f3f3")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Updated text",
+      status: "done",
+    });
+
+  expect(res.status).toBe(404);
+  expect(res.body.error).toBe("Update not found");
+  });
+
+  it("rejects a patch with no fields to update", async () => {
+  const createRes = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Original update",
+      status: "on-track",
+    });
+
+  const updateId = createRes.body.update._id;
+
+  const res = await request(app)
+    .patch(`/api/updates/${updateId}`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({});
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe("At least one of text or status is required");
+  });
+
+  it("rejects an invalid status", async () => {
+  const createRes = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Original update",
+      status: "on-track",
+    });
+
+  const updateId = createRes.body.update._id;
+
+  const res = await request(app)
+    .patch(`/api/updates/${updateId}`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      status: "not-a-real-status",
+    });
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe("status must be one of: on-track, blocked, done");
+  });
+
+  it("rejects an empty text value", async () => {
+  const createRes = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "Original update",
+      status: "on-track",
+    });
+
+  const updateId = createRes.body.update._id;
+
+  const res = await request(app)
+    .patch(`/api/updates/${updateId}`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({
+      text: "   ",
+    });
+
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe("text is required and cannot be empty");
+  });
+});
