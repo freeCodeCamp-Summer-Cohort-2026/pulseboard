@@ -325,6 +325,9 @@ describe("POST /api/updates/:id/reactions", () => {
       .post(`/api/updates/${updateId}/reactions`)
       .set("Authorization", `Bearer ${token}`)
       .send({emoji: '123456789'})
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("emoji cannot exceed 8 characters");
   });
   
 });
