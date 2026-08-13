@@ -319,6 +319,14 @@ describe("POST /api/updates/:id/reactions", () => {
 
     expect(res.status).toBe(404);
   });
+
+  if("returns 400 if the emoji string exceeds 8 characters", async () => {
+    const res = await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({emoji: '123456789'})
+  });
+  
 });
 
 describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
