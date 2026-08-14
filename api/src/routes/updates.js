@@ -16,10 +16,10 @@ const createUpdateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id,
 });
 
-// GET /api/updates?author=<userId>&status=<on-track|blocked|done>&sort=<newest|oldest|most-reactions>
+// GET /api/updates?author=<userId>&status=<on-track|blocked|done>&tag=<free-form-tag>&sort=<newest|oldest|most-reactions>
 router.get("/", async (req, res) => {
   try {
-    const { author, status, sort } = req.query;
+    const { author, status, tag, sort } = req.query;
     const filter = {};
 
     if (author) {
@@ -33,6 +33,10 @@ router.get("/", async (req, res) => {
         });
       }
       filter.status = status;
+    }
+
+    if (tag) {
+      filter.tags = tag;
     }
 
     if (sort) {
@@ -148,7 +152,7 @@ router.delete("/:id", requireAuth, checkRole("LEAD"), async (req, res) => {
 // POST /api/updates
 router.post("/", requireAuth, createUpdateLimiter, checkRole("LEAD", "MEMBER"), async (req, res) => {
   try {
-    const { text, status } = req.body;
+    const { text, status, tags } = req.body;
 
     if (!text || !text.trim()) {
       return res
@@ -162,10 +166,22 @@ router.post("/", requireAuth, createUpdateLimiter, checkRole("LEAD", "MEMBER"), 
       });
     }
 
+    function normalizeTags(tags) {
+      if (!Array.isArray(tags)) {
+        return [];
+      }
+
+      return ([...new Set(tags
+        .filter(tag => typeof (tag) === 'string' && tag.trim() !== "")
+        .map(tag => tag.trim().toLowerCase().replace(/\s+/g, " "))
+      )]);
+    };
+
     const update = await Update.create({
       author: req.user.id,
       text: text.trim(),
       status,
+      tags: normalizeTags(tags),
     });
 
     const populated = await update.populate("author", "displayName email");

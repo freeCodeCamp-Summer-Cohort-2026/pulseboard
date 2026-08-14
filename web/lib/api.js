@@ -45,19 +45,20 @@ export function login({ email, password }) {
   });
 }
 
-export function listUpdates({ author, status, sort } = {}) {
+export function listUpdates({ author, status, tag, sort } = {}) {
   const params = new URLSearchParams();
   if (author) params.set("author", author);
   if (status) params.set("status", status);
+  if (tag) params.set("tag", tag);
   if (sort) params.set("sort", sort);
   const query = params.toString() ? `?${params.toString()}` : "";
   return request(`/api/updates${query}`);
 }
 
-export function createUpdate({ text, status }, token) {
+export function createUpdate({ text, status, tags }, token) {
   return request("/api/updates", {
     method: "POST",
-    body: { text, status },
+    body: { text, status, tags },
     token,
   });
 }

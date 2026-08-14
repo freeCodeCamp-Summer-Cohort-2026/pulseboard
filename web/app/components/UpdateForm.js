@@ -14,6 +14,8 @@ export default function UpdateForm({ auth, onPosted }) {
   const [status, setStatus] = useState("on-track");
   const [error, setError] = useState(null);
   const [charCount, setCharCount] = useState(0);
+  const [tagText, setTagText] = useState("");
+  const [tags, setTags] = useState([]);
   const [messageQueue, setMessageQueue] = useState([]);
 
   useEffect(() => {
@@ -44,6 +46,19 @@ export default function UpdateForm({ auth, onPosted }) {
 
   if (!auth) {
     return <p className="hint">Log in to post a status update.</p>;
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const tag = tagText.trim().toLowerCase().replace(/\s+/g, " ");
+      if (tag && !tags.includes(tag)) {
+        setTags([...tags, tag]);
+        setTagText("");
+      } else {
+        setTagText("");
+      }
+    }
   }
 
   function isNetworkError(error) {
@@ -79,9 +94,10 @@ export default function UpdateForm({ auth, onPosted }) {
     setStatus("on-track");
 
     try {
-      const { update } = await createUpdate({ text, status }, auth.token);
+      const { update } = await createUpdate({ text, status, tags }, auth.token);
       setText("");
       setCharCount(0);
+      setTags([]);
       setStatus("on-track");
       onPosted(update);
     } catch (err) {
@@ -112,6 +128,30 @@ export default function UpdateForm({ auth, onPosted }) {
         disabled={isPosting}
       />
       <label>{charCount}/1000</label>
+      <label>{charCount}/1000</label>
+      <div className="tags-input-container">
+        {tags?.map((tag) => {
+          return (
+            <div className="tags-pill" key={tag}>
+              <span className="tag-name">{tag}</span>
+              <span
+                className="remove-tag"
+                onClick={(e) => setTags(tags.filter((t) => t !== tag))}
+              >
+                &times;
+              </span>
+            </div>
+          );
+        })}
+        <input
+          type="text"
+          className="tag-input"
+          placeholder="Type a tag and press Enter"
+          value={tagText}
+          onChange={(e) => setTagText(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+      </div>
       <div className="update-form-row">
         <select
           value={status}
