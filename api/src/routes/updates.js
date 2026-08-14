@@ -19,7 +19,7 @@ const createUpdateLimiter = rateLimit({
 // GET /api/updates?author=<userId>&status=<on-track|blocked|done>&tag=<free-form-tag>&sort=<newest|oldest|most-reactions>
 router.get("/", async (req, res) => {
   try {
-    const { author, status, tag, sort } = req.query;
+    const { author, status, tag, sort, q } = req.query;
     const filter = {};
 
     if (author) {
@@ -53,11 +53,20 @@ router.get("/", async (req, res) => {
       .populate("author", "displayName email")
       .populate("reactions.user", "displayName email");
 
-    if (sort === "most-reactions") {
-      updates.sort((a, b) => b.reactions.length - a.reactions.length);
+    let filterUpdates = updates;
+
+    if (q) {
+      const searchString = q.trim().toLowerCase();
+      filterUpdates = updates.filter((update) => {
+        return update.text.toLowerCase().includes(searchString);
+      });
     }
 
-    return res.json({ updates });
+    if (sort === "most-reactions") {
+      filterUpdates.sort((a, b) => b.reactions.length - a.reactions.length);
+    }
+
+    return res.json({ updates: filterUpdates });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch updates" });
   }
@@ -271,6 +280,7 @@ router.delete(
 
       return res.json({ update: populated });
     } catch (err) {
+      console.error(err);
       return res.status(400).json({ error: "Invalid update or reaction id" });
     }
   },

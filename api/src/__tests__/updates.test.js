@@ -256,7 +256,67 @@ describe("GET /api/updates", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.updates).toHaveLength(1);
-    expect(res.body.updates[0].tags[0]).toBe('frontend');
+    expect(res.body.updates[0].tags[0]).toBe("frontend");
+  });
+
+  it("filters by q", async () => {
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Team meeting today", status: "on-track" });
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Fixed login bug", status: "done" });
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Meeting with the client", status: "blocked" });
+
+    const res = await request(app).get("/api/updates?q=MEETING");
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toHaveLength(2);
+    expect(res.body.updates[0].text).toBe("Meeting with the client");
+    expect(res.body.updates[1].text).toBe("Team meeting today");
+  });
+
+  it("returns an empty array when q matches no updates", async () => {
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Team meeting today", status: "on-track" });
+
+    const res = await request(app).get("/api/updates?q=nonexistent");
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toEqual([]);
+  });
+
+  it("combines q with status filter", async () => {
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Meeting with frontend team", status: "blocked" });
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Meeting with backend team", status: "done" });
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Fixed frontend bug", status: "blocked" });
+
+    const res = await request(app).get("/api/updates?q=meeting&status=blocked");
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toHaveLength(1);
+    expect(res.body.updates[0].text).toBe("Meeting with frontend team");
+    expect(res.body.updates[0].status).toBe("blocked");
   });
 });
 
