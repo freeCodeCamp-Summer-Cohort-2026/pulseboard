@@ -207,7 +207,7 @@ describe("UpdateForm saving submissions", () => {
     });
 
     expect(localStorage.getItem("queuedMessages")).toMatch(
-      /\[{\"id\":\"test\d+\",\"text\":\"test\",\"status\":\"on-track\"}\]/,
+      /\[{\"id\":\"test\d+\",\"text\":\"test\",\"status\":\"on-track\",\"tags\":\[.*\]}\]/,
     );
   });
 
@@ -239,7 +239,7 @@ describe("UpdateForm saving submissions", () => {
     });
 
     expect(localStorage.getItem("queuedMessages")).toMatch(
-      /\[{\"id\":\"test\d+\",\"text\":\"test\",\"status\":\"on-track\"}\]/,
+      /\[{\"id\":\"test\d+\",\"text\":\"test\",\"status\":\"on-track\",\"tags\":\[.*\]}\]/,
     );
   });
 });

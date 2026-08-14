@@ -73,7 +73,11 @@ export default function UpdateForm({ auth, onPosted }) {
   async function retrySending(queuedMessage) {
     try {
       const { update } = await createUpdate(
-        { text: queuedMessage.text, status: queuedMessage.status },
+        {
+          text: queuedMessage.text,
+          status: queuedMessage.status,
+          tags: queuedMessage.tags,
+        },
         auth.token,
       );
       modifyQueue(queuedMessage);
@@ -99,7 +103,6 @@ export default function UpdateForm({ auth, onPosted }) {
       const { update } = await createUpdate({ text, status, tags }, auth.token);
       setText("");
       setCharCount(0);
-      setTags([]);
       setStatus("on-track");
       onPosted(update);
     } catch (err) {
@@ -109,11 +112,14 @@ export default function UpdateForm({ auth, onPosted }) {
           id: text.concat(Math.round(Math.random() * 100)),
           text,
           status,
+          tags,
         });
       } else {
-          setError(err.message);
-        }
+        setError(err.message);
       }
+    } finally {
+      setIsPosting(false);
+      setTags([]);
     }
   }
 
