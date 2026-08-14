@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import io from "socket.io-client";
 
 //? Socket using same port as express API
