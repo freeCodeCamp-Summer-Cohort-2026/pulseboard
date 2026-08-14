@@ -356,6 +356,8 @@ describe("POST /api/updates/:id/reactions", () => {
   });
 
   it("returns 404 for a reaction on a nonexistent update", async () => {
+
+    
     const res = await request(app)
       .post("/api/updates/64b7f3f3f3f3f3f3f3f3f3f3/reactions")
       .set("Authorization", `Bearer ${token}`)
@@ -363,6 +365,25 @@ describe("POST /api/updates/:id/reactions", () => {
 
     expect(res.status).toBe(404);
   });
+
+  it("returns 400 if the emoji string exceeds 8 characters", async () => {
+
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "React to me", status: "on-track" });
+
+    const updateId = createRes.body.update._id;
+
+    const res = await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({emoji: '123456789'})
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("emoji cannot exceed 8 characters");
+  });
+  
 });
 
 describe("DELETE /api/updates/:id/reactions/:reactionId", () => {

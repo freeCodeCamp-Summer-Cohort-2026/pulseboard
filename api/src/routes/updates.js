@@ -205,6 +205,10 @@ router.post(
         return res.status(400).json({ error: "emoji is required" });
       }
 
+      if(emoji.length > 8) {
+        return res.status(400).json({ error: "emoji cannot exceed 8 characters"})
+      }
+
       const update = await Update.findById(req.params.id);
       if (!update) {
         return res.status(404).json({ error: "Update not found" });
