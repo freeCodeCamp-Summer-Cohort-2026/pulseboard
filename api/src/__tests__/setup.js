@@ -1,25 +1,19 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
+const mongoose = require('mongoose');
 
-let mongoServer;
+const TEST_DB_URI = process.env.MONGO_URI || 'mongodb://172.17.0.1:27018/pulseboard_test';
 
 async function setupTestDB() {
-  mongoServer = await MongoMemoryServer.create();
-  const uri = mongoServer.getUri();
-  await mongoose.connect(uri);
+  await mongoose.connect(TEST_DB_URI);
 }
 
 async function teardownTestDB() {
   await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  if (mongoServer) {
-    await mongoServer.stop();
-  }
+  await mongoose.disconnect();
 }
 
 async function clearTestDB() {
   const collections = mongoose.connection.collections;
-  for (const key of Object.keys(collections)) {
+  for (const key in collections) {
     await collections[key].deleteMany({});
   }
 }
