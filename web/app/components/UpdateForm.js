@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useState, useEffect } from "react";
 import { createUpdate } from "@/lib/api";
 
 const STATUS_OPTIONS = [
@@ -17,6 +16,7 @@ export default function UpdateForm({ auth, onPosted }) {
   const [charCount, setCharCount] = useState(0);
   const [tagText, setTagText] = useState("");
   const [tags, setTags] = useState([]);
+  const [isPosting, setIsPosting] = useState(false);
   const [messageQueue, setMessageQueue] = useState([]);
 
   useEffect(() => {
@@ -136,7 +136,6 @@ export default function UpdateForm({ auth, onPosted }) {
         required
         disabled={isPosting}
       />
-      <label>{charCount}/1000</label>
       <label>{charCount}/1000</label>
       <div className="tags-input-container">
         {tags?.map((tag) => {
