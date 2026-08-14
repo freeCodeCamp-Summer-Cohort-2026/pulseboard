@@ -14,13 +14,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      maxlength: 100,
     },
     passwordHash: {
       type: String,
       required: true,
     },
+    role: {
+      type: String,
+      enum: ["LEAD", "MEMBER"],
+      default: "MEMBER",
+      required: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 userSchema.methods.comparePassword = function comparePassword(candidate) {
