@@ -70,6 +70,34 @@ export function findUserReaction(reactions, userId, emoji) {
   );
 }
 
+const MENTION_PATTERN = /@[a-zA-Z0-9_]+/g;
+
+export function renderWithMentions(text) {
+  if (!text) return text;
+
+  const nodes = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = MENTION_PATTERN.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+    nodes.push(
+      <span key={match.index} className="mention">
+        {match[0]}
+      </span>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
+}
+
 export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -227,7 +255,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
           />
         </div>
       ) : (
-        <p className="update-text">{update.text}</p>
+        <p className="update-text">{renderWithMentions(update.text)}</p>
       )}
       <footer>
         <div className="reactions">
