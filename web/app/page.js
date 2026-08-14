@@ -5,10 +5,12 @@ import { useAuth } from "@/lib/useAuth";
 import AuthPanel from "./components/AuthPanel";
 import UpdateForm from "./components/UpdateForm";
 import Feed from "./components/Feed";
+import { useSocket } from "@/lib/useSocket";
 
 export default function HomePage() {
   const { auth, ready, signIn, signOut } = useAuth();
   const [refreshToken, setRefreshToken] = useState(0);
+  const socket = useSocket();
 
   function handlePosted() {
     setRefreshToken((n) => n + 1);
@@ -28,7 +30,7 @@ export default function HomePage() {
 
       <section>
         <h2>Feed</h2>
-        <Feed auth={auth} refreshToken={refreshToken} />
+        <Feed auth={auth} refreshToken={refreshToken} socket={socket} />
       </section>
     </main>
   );

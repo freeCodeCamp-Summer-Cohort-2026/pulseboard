@@ -3,21 +3,29 @@
 import { useEffect, useMemo, useState } from "react";
 import { listUpdates } from "@/lib/api";
 import UpdateCard from "./UpdateCard";
-import { useSocket } from "@/lib/useSocket";
 
 const STATUS_OPTIONS = ["on-track", "blocked", "done"];
 
-export default function Feed({ auth, refreshToken }) {
+export default function Feed({ auth, refreshToken, socket }) {
   const [updates, setUpdates] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [authorFilter, setAuthorFilter] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  //* Establish initial socket connection + pass handlers
-  useSocket({ addUpdate: handleUpdateState, addReaction: handleUserReaction });
+  //* Attach and detach event handlers for websocket (if initialized)
+  useEffect(() => {
+    if (!socket) return;
 
-  //? Could get rid of refresh token and have websocket post to all clients including origin user
+    socket.on("POST:update", handleRcvdUpdate);
+    socket.on("POST:reaction", handleRcvdReaction);
+
+    return () => {
+      socket.off("POST:update", handleRcvdUpdate);
+      socket.off("POST:reaction", handleRcvdReaction);
+    }
+  }, [socket]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -47,25 +55,23 @@ export default function Feed({ auth, refreshToken }) {
     return Array.from(map.entries());
   }, [updates]);
 
-  //* Handler for POST:update event on websocket
-  function handleUpdateState(update) {
-    if (updates.find((u) => u._id === update._id)) return;
-    setUpdates([...updates, update]);
+  //* Handler for incoming POST:update event on websocket
+  function handleRcvdUpdate(update) {
+    setUpdates((prev) => {
+      //? If update already exists because current user posted it, then don't handle websocket response
+      if (prev.some((u) => u._id === update._id)) return prev;
+      return [update, ...prev];
+    });
   }
 
-  //* Handler for POST:reaction event on websocket
-  function handleUserReaction({ updateId, reaction }) {
-    const targetUpdate = updates.find((u) => u._id === updateId);
-    const targetUpdateId = updates.findIndex((u) => u._id === updateId);
-
-    // Can access current user with auth.user
-    targetUpdate.reactions.push(reaction);
-
-    setUpdates([
-      ...updates.slice(0, targetUpdateId),
-      targetUpdate,
-      ...updates.slice(targetUpdateId + 1)
-    ]);
+  //* Handler for incoming POST:reaction event on websocket
+  //? Reaction isn't duplicated because duplicates are filtered out already in backend logic
+  function handleRcvdReaction({ updateId, reaction }) {
+    setUpdates((prev) => prev.map(
+      (u) => u._id === updateId
+        ? { ...u, reactions: [...(u.reactions || []), reaction] }
+        : u
+    ));
   }
 
   function handleUpdated(updated) {
