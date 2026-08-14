@@ -98,7 +98,6 @@ describe("CountCharacters", () => {
   });
 });
 
-
 describe("UpdateForm saving submissions", () => {
   beforeEach(() => {
     jest.clearAllMocks();

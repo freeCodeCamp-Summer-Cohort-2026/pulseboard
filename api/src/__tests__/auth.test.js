@@ -69,31 +69,30 @@ describe("POST /api/auth/register", () => {
   });
 });
 
-  it("rejects displayName longer than 100 characters", async () => {
-    const longName = "A".repeat(101);
-    const res = await request(app).post("/api/auth/register").send({
-      email: "testlong@example.com",
-      password: "password123",
-      displayName: longName,
-    });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("display name must be 100 characters or less");
+it("rejects displayName longer than 100 characters", async () => {
+  const longName = "A".repeat(101);
+  const res = await request(app).post("/api/auth/register").send({
+    email: "testlong@example.com",
+    password: "password123",
+    displayName: longName,
   });
 
-  it("accepts displayName exactly 100 characters", async () => {
-    const nameAtLimit = "A".repeat(100);
-    const res = await request(app).post("/api/auth/register").send({
-      email: "testexact@example.com",
-      password: "password123",
-      displayName: nameAtLimit,
-    });
+  expect(res.status).toBe(400);
+  expect(res.body.error).toBe("display name must be 100 characters or less");
+});
 
-    expect(res.status).toBe(201);
-    expect(res.body.user.displayName).toBe(nameAtLimit);
-    expect(res.body.token).toBeDefined();
+it("accepts displayName exactly 100 characters", async () => {
+  const nameAtLimit = "A".repeat(100);
+  const res = await request(app).post("/api/auth/register").send({
+    email: "testexact@example.com",
+    password: "password123",
+    displayName: nameAtLimit,
   });
 
+  expect(res.status).toBe(201);
+  expect(res.body.user.displayName).toBe(nameAtLimit);
+  expect(res.body.token).toBeDefined();
+});
 
 describe("POST /api/auth/login", () => {
   beforeEach(async () => {

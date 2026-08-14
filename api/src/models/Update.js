@@ -7,7 +7,7 @@ const reactionSchema = new mongoose.Schema(
     emoji: { type: String, required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   },
-  { timestamps: true, _id: true }
+  { timestamps: true, _id: true },
 );
 
 const updateSchema = new mongoose.Schema(
@@ -38,7 +38,7 @@ const updateSchema = new mongoose.Schema(
       default: [],
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 updateSchema.index({ createdAt: -1 });
