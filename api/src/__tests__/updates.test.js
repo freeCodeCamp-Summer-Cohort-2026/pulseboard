@@ -155,7 +155,47 @@ describe("GET /api/updates", () => {
     expect(res.body.updates).toHaveLength(2);
     expect(res.body.updates[0].text).toBe("Most reacted");
   });
+  it("sorts by reactions before applying pagination", async () => {
+    const mostReacted = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Most reacted", status: "blocked" });
 
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Second update", status: "blocked" });
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Newest update", status: "blocked" });
+
+    const updateId = mostReacted.body.update._id;
+
+    await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ emoji: "✅" });
+
+    await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ emoji: "🔥" });
+    await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ emoji: "🚀" });
+
+    const res = await request(app)
+      .get("/api/updates?sort=most-reactions&page=1&limit=1");
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toHaveLength(1);
+    expect(res.body.updates[0].text).toBe("Most reacted");
+    expect(res.body.pagination.page).toBe(1);
+    expect(res.body.pagination.limit).toBe(1);
+  });
   it("rejects an invalid sort value", async () => {
     const res = await request(app)
       .get("/api/updates?sort=popular");

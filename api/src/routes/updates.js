@@ -50,18 +50,34 @@ router.get("/", async (req, res) => {
     }
 
     const sortDirection = sort === "oldest" ? 1 : -1;
-    const updates = await Update.find(filter)
-      .sort({ createdAt: sortDirection })
-      .skip((page - 1)*limit)
-      .limit(limit)
-      .populate("author", "displayName email")
-      .populate("reactions.user", "displayName email");
 
-    if (sort === "most-reactions") {
-      updates.sort((a, b) => b.reactions.length - a.reactions.length);
+let updates;
+
+if (sort === "most-reactions") {
+  updates = await Update.find(filter)
+    .populate("author", "displayName email")
+    .populate("reactions.user", "displayName email");
+
+  updates.sort((a, b) => {
+    if (b.reactions.length !== a.reactions.length) {
+      return b.reactions.length - a.reactions.length;
     }
+
+    return b.createdAt - a.createdAt;
+  });
+
+  updates = updates.slice((page - 1) * limit, page * limit);
+} else {
+  updates = await Update.find(filter)
+    .sort({ createdAt: sortDirection })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .populate("author", "displayName email")
+    .populate("reactions.user", "displayName email");
+}
     const total = await Update.countDocuments(filter);
-    const hasNextPage = page * limit<total;
+    const hasNextPage = page
+     limit<total;
     return res.json({
       updates,
       pagination:{
