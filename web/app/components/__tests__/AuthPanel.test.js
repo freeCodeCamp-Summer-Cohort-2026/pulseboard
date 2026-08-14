@@ -29,7 +29,7 @@ describe('AuthPanel - Password Confirmation', () => {
     fireEvent.change(screen.getByPlaceholderText('Password'), {
       target: { value: 'password123' },
     });
-    fireEvent.change(screen.getByPlaceholderText('confirm password'), {
+    fireEvent.change(screen.getByPlaceholderText('Confirm password'), {
       target: { value: 'password456' },
     });
 
@@ -40,16 +40,16 @@ describe('AuthPanel - Password Confirmation', () => {
       expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
     });
 
-    
+  
     expect(register).not.toHaveBeenCalled();
   });
 
   test('calls API when passwords match', async () => {
-  
+    
     register.mockResolvedValue({ user: { displayName: 'Test User' } });
 
     render(<AuthPanel auth={null} onSignIn={() => {}} onSignOut={() => {}} />);
-    
+
     const registerTab = screen.getByText('Register');
     fireEvent.click(registerTab);
 
@@ -63,7 +63,7 @@ describe('AuthPanel - Password Confirmation', () => {
     fireEvent.change(screen.getByPlaceholderText('Password'), {
       target: { value: 'password123' },
     });
-    fireEvent.change(screen.getByPlaceholderText('confirm password'), {
+    fireEvent.change(screen.getByPlaceholderText('Confirm password'), {
       target: { value: 'password123' },
     });
 
