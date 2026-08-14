@@ -30,7 +30,7 @@ async function main() {
     });
   });
 
-  //* Give socket access to middleware
+  //* Give middleware access to socket
   app.set("io", io);
 
   //* Once websocket(s) defined then start server

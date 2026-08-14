@@ -4,7 +4,7 @@ import io from "socket.io-client";
 //? Socket using same port as express API
 const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-export function useSocket(/* { addUpdate, addReaction } */) {
+export function useSocket() {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -31,5 +31,3 @@ export function useSocket(/* { addUpdate, addReaction } */) {
 
   return socket;
 }
-
-// Could put socket in react context if needs to be shared across multiple components?
