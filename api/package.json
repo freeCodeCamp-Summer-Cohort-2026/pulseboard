@@ -24,6 +24,7 @@
     "cross-env": "^7.0.3",
     "jest": "^29.7.0",
     "mongodb-memory-server": "^9.4.1",
+    "socket.io-client": "^4.8.3",
     "supertest": "^7.0.0"
   },
   "jest": {
