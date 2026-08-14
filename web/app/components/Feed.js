@@ -76,22 +76,27 @@ export default function Feed({ auth, refreshToken }) {
   }, [updates]);
 
   function handleUpdated(updated) {
-    setUpdates((prev) => prev.map((u) => (u._id === updated._id ? updated : u)));
+    setUpdates((prev) =>
+      prev.map((u) => (u._id === updated._id ? updated : u)),
+    );
+  }
+
+  function handleDeleted(deleteId) {
+    setUpdates((prev) => prev.filter((update) => update._id !== deleteId));
   }
 
   function handleShowMyUpdates() {
     try {
       setShowMyUpdates(!showMyUpdates);
-      if (!showMyUpdates){
+      if (!showMyUpdates) {
         setAuthorFilter(auth ? auth.user._id : "");
       } else {
         setAuthorFilter("");
       }
     } catch (err) {
-       setError(err.message);
+      setError(err.message);
     }
   }
-
 
   return (
     <div className="feed">
@@ -116,10 +121,21 @@ export default function Feed({ auth, refreshToken }) {
             <option key={id} value={id}>
               {name}
             </option>
-            ))}
+          ))}
+        </select>
+        <select
+          value={tagFilter}
+          onChange={(e) => setTagFilter(e.target.value)}
+        >
+          <option value="">All tags</option>
+          {tags.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
         </select>
         {auth && (<div>
-          <input id="show-updates-checkbox" type="checkbox" checked={showMyUpdates} onChange={handleShowMyUpdates}/>
+          <input id="show-updates-checkbox" type="checkbox" checked={showMyUpdates} onChange={handleShowMyUpdates} />
           <label htmlFor="show-updates-checkbox">Show My Updates</label>
         </div>)}
         <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
@@ -127,7 +143,7 @@ export default function Feed({ auth, refreshToken }) {
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
-        
+
       </div>
 
       {error && <p className="error">{error}</p>}
