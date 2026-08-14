@@ -10,6 +10,7 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   if (auth) {
     return (
@@ -28,6 +29,12 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
     e.preventDefault();
     setError(null);
     setLoading(true);
+
+    if (mode === "register" && password !== confirmPassword){
+      setError('Passwords do not match');
+      setLoading(false)
+      return;
+    }
     try {
       const result =
         mode === "login"
@@ -66,7 +73,7 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
           placeholder="Display name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          required
+          required          
         />
       )}
       <input
@@ -84,6 +91,7 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
         required
         minLength={8}
       />
+
       <button type="submit" disabled={loading}>
         {loading
           ? "Please wait..."
@@ -91,6 +99,19 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
             ? "Log in"
             : "Create account"}
       </button>
+
+      {mode === "register" && (
+        <input 
+          type="password"
+          placeholder = 'confirm password'
+          value = {confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          minLength={8}
+        />
+          
+        )}
+
       {error && <p className="error">{error}</p>}
     </form>
   );
