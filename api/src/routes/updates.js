@@ -76,7 +76,8 @@ router.post("/", requireAuth, async (req, res) => {
     const populated = await update.populate("author", "displayName email");
 
     //* Broadcast event of post being made
-    app.locals.io.emit("POST:update", update);
+    const io = req.app.get("io");
+    io.emit("POST:update", update);
 
     return res.status(201).json({ update: populated });
   } catch (err) {
@@ -105,7 +106,8 @@ router.post("/:id/reactions", requireAuth, async (req, res) => {
       return res.status(409).json({ error: "You already reacted with that emoji" });
     }
 
-    update.reactions.push({ emoji, user: req.user.id });
+    const reaction = { emoji, user: req.user.id };
+    update.reactions.push(reaction);
     await update.save();
 
     const populated = await update.populate([
@@ -114,7 +116,8 @@ router.post("/:id/reactions", requireAuth, async (req, res) => {
     ]);
 
     //* Broadcast event of post being reacted to
-    app.locals.io.emit("POST:reaction", [req.params.id, req.user, emoji]);
+    const io = req.app.get("io");
+    io.emit("POST:reaction", { updateId: req.params.id, reaction });
 
     return res.status(201).json({ update: populated });
   } catch (err) {

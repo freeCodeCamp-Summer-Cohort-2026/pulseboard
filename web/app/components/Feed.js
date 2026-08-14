@@ -54,12 +54,12 @@ export default function Feed({ auth, refreshToken }) {
   }
 
   //* Handler for POST:reaction event on websocket
-  function handleUserReaction([postId, user, emoji]) {
-    const targetUpdate = updates.find((u) => u._id === postId);
-    const targetUpdateId = updates.findIndex((u) => u._id === postId);
+  function handleUserReaction({ updateId, reaction }) {
+    const targetUpdate = updates.find((u) => u._id === updateId);
+    const targetUpdateId = updates.findIndex((u) => u._id === updateId);
 
     // Can access current user with auth.user
-    targetUpdate.reactions.push({ emoji, user });
+    targetUpdate.reactions.push(reaction);
 
     setUpdates([
       ...updates.slice(0, targetUpdateId),
