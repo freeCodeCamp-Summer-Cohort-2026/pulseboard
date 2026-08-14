@@ -16,6 +16,16 @@ export default function Feed({ auth, refreshToken }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMyUpdates, setShowMyUpdates] = useState(false);
+  const [showJumpToTop, setShowJumpToTop] = useState(false);
+
+  useEffect(() => {
+    function handleScroll() {
+      setShowJumpToTop(window.scrollY > window.innerHeight);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -85,6 +95,10 @@ export default function Feed({ auth, refreshToken }) {
     setUpdates((prev) => prev.filter((update) => update._id !== deleteId));
   }
 
+  function handleJumpToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function handleShowMyUpdates() {
     try {
       setShowMyUpdates(!showMyUpdates);
@@ -134,16 +148,25 @@ export default function Feed({ auth, refreshToken }) {
             </option>
           ))}
         </select>
-        {auth && (<div>
-          <input id="show-updates-checkbox" type="checkbox" checked={showMyUpdates} onChange={handleShowMyUpdates} />
-          <label htmlFor="show-updates-checkbox">Show My Updates</label>
-        </div>)}
-        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+        {auth && (
+          <div>
+            <input
+              id="show-updates-checkbox"
+              type="checkbox"
+              checked={showMyUpdates}
+              onChange={handleShowMyUpdates}
+            />
+            <label htmlFor="show-updates-checkbox">Show My Updates</label>
+          </div>
+        )}
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+        >
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
-
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -163,6 +186,17 @@ export default function Feed({ auth, refreshToken }) {
           />
         ))}
       </div>
+
+      {showJumpToTop && (
+        <button
+          type="button"
+          className="jump-to-top"
+          onClick={handleJumpToTop}
+          aria-label="Jump to top"
+        >
+          ↑ Top
+        </button>
+      )}
     </div>
   );
 }

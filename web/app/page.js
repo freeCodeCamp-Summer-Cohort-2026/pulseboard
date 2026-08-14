@@ -44,9 +44,15 @@ export default function HomePage() {
   return (
     <main className="container">
       <h1>PulseBoard</h1>
-      <p className="tagline">The team standup feed - post, react, stay in sync.</p>
+      <p className="tagline">
+        The team standup feed - post, react, stay in sync.
+      </p>
 
-      <button type="button" onClick={handleThemeToggle} className="theme-toggle">
+      <button
+        type="button"
+        onClick={handleThemeToggle}
+        className="theme-toggle"
+      >
         {theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
       </button>
 

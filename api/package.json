@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/seed.js",
-    "test": "cross-env JWT_SECRET=test-secret NODE_ENV=test jest --runInBand"
+    "test": "cross-env JWT_SECRET=test-secret NODE_ENV=test jest --runInBand",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -23,11 +25,15 @@
     "cross-env": "^7.0.3",
     "jest": "^29.7.0",
     "mongodb-memory-server": "^9.4.1",
+    "prettier": "3.9.6",
     "supertest": "^7.0.0"
   },
   "jest": {
     "testEnvironment": "node",
     "testTimeout": 30000,
-    "testPathIgnorePatterns": ["/node_modules/", "/src/__tests__/setup.js"]
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/src/__tests__/setup.js"
+    ]
   }
 }

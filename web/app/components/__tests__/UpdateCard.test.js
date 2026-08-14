@@ -94,6 +94,30 @@ describe("UpdateCard", () => {
     expect(screen.getByText("Done")).toBeInTheDocument();
   });
 
+  it("renders a mention as a styled span", () => {
+    render(
+      <UpdateCard
+        update={{ ...update, text: "Nice work @amina" }}
+        auth={null}
+        onUpdated={() => {}}
+      />,
+    );
+
+    const mention = screen.getByText("@amina");
+    expect(mention.tagName).toBe("SPAN");
+    expect(mention).toHaveClass("mention");
+  });
+
+  it("renders plain text without an @ unchanged", () => {
+    const { container } = render(
+      <UpdateCard update={update} auth={null} onUpdated={() => {}} />,
+    );
+
+    const text = container.querySelector(".update-text");
+    expect(text).toHaveTextContent("Shipped the login page");
+    expect(text.querySelector(".mention")).toBeNull();
+  });
+
   it("renders a relative timestamp with the original dateTime value", () => {
     const createdAt = new Date(Date.now() - 30 * 1000).toISOString();
     const recentUpdate = {
