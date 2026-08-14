@@ -97,13 +97,11 @@ export default function UpdateForm({ auth, onPosted }) {
     setError(null);
     setIsPosting(true);
     setText("");
+    setCharCount(0);
     setStatus("on-track");
 
     try {
       const { update } = await createUpdate({ text, status, tags }, auth.token);
-      setText("");
-      setCharCount(0);
-      setStatus("on-track");
       onPosted(update);
     } catch (err) {
       if (isNetworkError(err)) {
@@ -192,3 +190,6 @@ export default function UpdateForm({ auth, onPosted }) {
     </form>
   );
 }
+
+
+
