@@ -30,11 +30,12 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
     setError(null);
     setLoading(true);
 
-    if (mode === "register" && password !== confirmPassword){
-      setError('Passwords do not match');
-      setLoading(false)
+    if (mode === "register" && password !== confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
       return;
     }
+
     try {
       const result =
         mode === "login"
@@ -73,9 +74,10 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
           placeholder="Display name"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
-          required          
+          required
         />
       )}
+
       <input
         type="email"
         placeholder="Email"
@@ -83,6 +85,7 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
         onChange={(e) => setEmail(e.target.value)}
         required
       />
+
       <input
         type="password"
         placeholder="Password"
@@ -92,6 +95,17 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
         minLength={8}
       />
 
+      {mode === "register" && (
+        <input
+          type="password"
+          placeholder="Confirm password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          minLength={8}
+        />
+      )}
+
       <button type="submit" disabled={loading}>
         {loading
           ? "Please wait..."
@@ -99,18 +113,6 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
             ? "Log in"
             : "Create account"}
       </button>
-
-      {mode === "register" && (
-        <input 
-          type="password"
-          placeholder = 'confirm password'
-          value = {confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          minLength={8}
-        />
-          
-        )}
 
       {error && <p className="error">{error}</p>}
     </form>
