@@ -140,6 +140,8 @@ router.patch("/:id", requireAuth, async (req, res) => {
       update.status = status;
     }
 
+    update.editedAt = new Date();
+
     await update.save();
 
     const populated = await update.populate([

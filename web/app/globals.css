@@ -323,6 +323,24 @@ section {
   color: var(--text-secondary);
 }
 
+.update-meta-subinfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.edited-indicator {
+  color: var(--text-hint);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.meta-separator {
+  color: var(--text-hint);
+  font-size: 18px;
+  font-weight: 600;
+}
+
 .author {
   font-weight: bold;
   font-size: 1rem;

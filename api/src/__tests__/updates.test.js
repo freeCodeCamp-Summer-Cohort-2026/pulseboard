@@ -271,7 +271,6 @@ describe("GET /api/updates", () => {
     expect(res.status).toBe(200);
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].tags[0]).toBe("frontend");
-
   });
 
   it("filters by q", async () => {
@@ -590,6 +589,49 @@ describe("PATCH /api/updates/:id", () => {
     expect(res.body.update.status).toBe("done");
     expect(res.body.update._id).toBe(updateId);
     expect(res.body.update.author._id).toBe(userId);
+  });
+
+  it("adds edited indicator when author edit their own update", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Original update",
+        status: "on-track",
+      });
+
+    const updateId = createRes.body.update._id;
+
+    const res = await request(app)
+      .patch(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Updated update",
+        status: "done",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.update.text).toBe("Updated update");
+    expect(res.body.update.status).toBe("done");
+    expect(res.body.update._id).toBe(updateId);
+    expect(res.body.update.author._id).toBe(userId);
+    expect(res.body.update.editedAt).toBeTruthy();
+  });
+
+  it("edited indicator is not added for updates that are not edited", async () => {
+    const res = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Original update",
+        status: "on-track",
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.update.text).toBe("Original update");
+    expect(res.body.update.status).toBe("on-track");
+    expect(res.body.update.author._id).toBe(userId);
+    expect(res.body.update.editedAt).toBeNull();
   });
 
   it("rejects another user from editing the update", async () => {

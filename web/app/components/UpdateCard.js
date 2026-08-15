@@ -218,9 +218,17 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
             <span className="author">
               {update.author?.displayName || "Unknown"}
             </span>
-            <time dateTime={update.createdAt}>
-              {formatRelativeTime(update.createdAt)}
-            </time>
+            <div className="update-meta-subinfo">
+              <time dateTime={update.createdAt}>
+                {formatRelativeTime(update.createdAt)}
+              </time>
+              {!!update.editedAt && (
+                <>
+                  <span className="meta-separator">·</span>
+                  <span className="edited-indicator">(edited)</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         {isEditing ? (

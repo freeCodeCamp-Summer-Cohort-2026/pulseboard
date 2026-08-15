@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { createUpdate } from "@/lib/api";
 
+import { getDraft, saveDraft, clearDraft } from "@/lib/draft";
+
 const STATUS_OPTIONS = [
   { value: "on-track", label: "On track" },
   { value: "blocked", label: "Blocked" },
@@ -18,6 +20,19 @@ export default function UpdateForm({ auth, onPosted }) {
   const [tags, setTags] = useState([]);
   const [isPosting, setIsPosting] = useState(false);
   const [messageQueue, setMessageQueue] = useState([]);
+
+  useEffect(() => {
+    if (!auth) return;
+    const draft = getDraft(auth.user._id);
+    if (draft) {
+      setText(draft.text ?? "");
+      setStatus(draft.status ?? "on-track");
+    }
+  }, [auth?.user?._id]);
+
+  useEffect(() => {
+    saveDraft(auth?.user?._id, { text, status });
+  }, [text, status]);
 
   useEffect(() => {
     const queue = localStorage.getItem("queuedMessages");
@@ -103,6 +118,7 @@ export default function UpdateForm({ auth, onPosted }) {
     try {
       const { update } = await createUpdate({ text, status, tags }, auth.token);
       onPosted(update);
+      clearDraft(auth.user._id);
     } catch (err) {
       if (isNetworkError(err)) {
         setError("Failed to connect.");
