@@ -21,9 +21,9 @@ router.get("/", async (req, res) => {
   try {
     const { author, status, sort } = req.query;
 
-    const page = Math.max(parseInt(req.query.page,10)||1,1);
+    const page = Math.max(parseInt(req.query.page,10) || 1, 1);
     const limit = Math.min(
-      Math.max(parseInt(req.query.limit,10)||10,1),
+      Math.max(parseInt(req.query.limit,10) || 10, 1),
     50
   );
     const filter = {};
@@ -54,19 +54,27 @@ router.get("/", async (req, res) => {
 let updates;
 
 if (sort === "most-reactions") {
-  updates = await Update.find(filter)
-    .populate("author", "displayName email")
-    .populate("reactions.user", "displayName email");
+  updates = await Update.aggregate([
+    { $match: filter },
+    {
+      $addFields: {
+        reactionCount: { $size: "$reactions" },
+      },
+    },
+    {
+      $sort: {
+        reactionCount: -1,
+        createdAt: -1,
+      },
+    },
+    { $skip: (page - 1) * limit },
+    { $limit: limit },
+  ]);
 
-  updates.sort((a, b) => {
-    if (b.reactions.length !== a.reactions.length) {
-      return b.reactions.length - a.reactions.length;
-    }
-
-    return b.createdAt - a.createdAt;
-  });
-
-  updates = updates.slice((page - 1) * limit, page * limit);
+  await Update.populate(updates, [
+    { path: "author", select: "displayName email" },
+    { path: "reactions.user", select: "displayName email" },
+  ]);
 } else {
   updates = await Update.find(filter)
     .sort({ createdAt: sortDirection })
@@ -76,8 +84,7 @@ if (sort === "most-reactions") {
     .populate("reactions.user", "displayName email");
 }
     const total = await Update.countDocuments(filter);
-    const hasNextPage = page
-     limit<total;
+    const hasNextPage = page * limit<total;
     return res.json({
       updates,
       pagination:{

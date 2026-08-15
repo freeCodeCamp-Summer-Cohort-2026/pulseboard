@@ -131,30 +131,74 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("First update");
   });
 
-  it("lists updates with the most reactions first", async () => {
-    const createRes = await request(app)
-      .post("/api/updates")
-      .set("Authorization", `Bearer ${token}`)
-      .send({ text: "Most reacted", status: "blocked" });
+  it("sorts by reactions before applying pagination", async () => {
+  const first = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ text: "Most reacted", status: "blocked" });
 
-    const updateId = createRes.body.update._id;
+  const second = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ text: "Second most reacted", status: "blocked" });
 
-    await request(app)
-      .post("/api/updates")
-      .set("Authorization", `Bearer ${token}`)
-      .send({ text: "No reactions", status: "blocked" });
+  const third = await request(app)
+    .post("/api/updates")
+    .set("Authorization", `Bearer ${token}`)
+    .send({ text: "No reactions", status: "blocked" });
 
-    await request(app)
-      .post(`/api/updates/${updateId}/reactions`)
-      .set("Authorization", `Bearer ${token}`)
-      .send({ emoji: "✅" });
+  const firstId = first.body.update._id;
+  const secondId = second.body.update._id;
 
-    const res = await request(app).get("/api/updates?sort=most-reactions");
+  // First update gets 2 reactions
+  await request(app)
+    .post(`/api/updates/${firstId}/reactions`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ emoji: "✅" });
 
-    expect(res.status).toBe(200);
-    expect(res.body.updates).toHaveLength(2);
-    expect(res.body.updates[0].text).toBe("Most reacted");
-  });
+  await request(app)
+    .post(`/api/updates/${firstId}/reactions`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ emoji: "🔥" });
+
+  // Second update gets 1 reaction
+  await request(app)
+    .post(`/api/updates/${secondId}/reactions`)
+    .set("Authorization", `Bearer ${token}`)
+    .send({ emoji: "👍" });
+
+  // Page 1 should contain the most-reacted update
+  const page1 = await request(app)
+    .get("/api/updates?sort=most-reactions&page=1&limit=1");
+
+  expect(page1.status).toBe(200);
+  expect(page1.body.updates).toHaveLength(1);
+  expect(page1.body.updates[0].text).toBe("Most reacted");
+  expect(page1.body.pagination.page).toBe(1);
+  expect(page1.body.pagination.limit).toBe(1);
+  expect(page1.body.pagination.hasNextPage).toBe(true);
+
+  // Page 2 should contain the second-most-reacted update,
+  // proving sorting happened before pagination.
+  const page2 = await request(app)
+    .get("/api/updates?sort=most-reactions&page=2&limit=1");
+
+  expect(page2.status).toBe(200);
+  expect(page2.body.updates).toHaveLength(1);
+  expect(page2.body.updates[0].text).toBe("Second most reacted");
+  expect(page2.body.pagination.page).toBe(2);
+  expect(page2.body.pagination.limit).toBe(1);
+  expect(page2.body.pagination.hasNextPage).toBe(true);
+
+  // Page 3 should contain the update with no reactions.
+  const page3 = await request(app)
+    .get("/api/updates?sort=most-reactions&page=3&limit=1");
+
+  expect(page3.status).toBe(200);
+  expect(page3.body.updates).toHaveLength(1);
+  expect(page3.body.updates[0].text).toBe("No reactions");
+  expect(page3.body.pagination.hasNextPage).toBe(false);
+});
   it("sorts by reactions before applying pagination", async () => {
     const mostReacted = await request(app)
       .post("/api/updates")
