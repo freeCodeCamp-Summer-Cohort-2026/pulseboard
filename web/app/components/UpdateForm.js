@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createUpdate } from "@/lib/api";
 
 const STATUS_OPTIONS = [
@@ -13,28 +13,111 @@ export default function UpdateForm({ auth, onPosted }) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState("on-track");
   const [error, setError] = useState(null);
-  const [isPosting, setIsPosting] = useState(false);
   const [charCount, setCharCount] = useState(0);
+  const [tagText, setTagText] = useState("");
+  const [tags, setTags] = useState([]);
+  const [isPosting, setIsPosting] = useState(false);
+  const [messageQueue, setMessageQueue] = useState([]);
+
+  useEffect(() => {
+    const queue = localStorage.getItem("queuedMessages");
+    if (queue) {
+      setMessageQueue(JSON.parse(queue));
+    }
+  }, []);
+
+  useEffect(() => {
+    const reconnectInterval = setInterval(() => {
+      if (navigator.onLine && messageQueue.length > 0) {
+        const oldestQueuedMessage = messageQueue[0];
+        retrySending(oldestQueuedMessage);
+      }
+    }, 3000);
+
+    return () => clearInterval(reconnectInterval);
+  }, [messageQueue]);
+
+  function modifyQueue(message) {
+    const newQueue = messageQueue.includes(message)
+      ? messageQueue.filter((msg) => msg.id !== message.id)
+      : [...messageQueue, message];
+    setMessageQueue(newQueue);
+    localStorage.setItem("queuedMessages", JSON.stringify(newQueue));
+  }
 
   if (!auth) {
     return <p className="hint">Log in to post a status update.</p>;
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const tag = tagText.trim().toLowerCase().replace(/\s+/g, " ");
+      if (tag && !tags.includes(tag)) {
+        setTags([...tags, tag]);
+        setTagText("");
+      } else {
+        setTagText("");
+      }
+    }
+  }
+
+  function isNetworkError(error) {
+    const NETWORK_ERROR_MESSAGES = ["networkerror", "failed to fetch"]; // checks against errors displayed by Firefox and Chrome/Opera
+    const lowerCaseMsg = error.message.toLowerCase();
+    return NETWORK_ERROR_MESSAGES.some((exampleError) =>
+      lowerCaseMsg.includes(exampleError),
+    );
+  }
+
+  async function retrySending(queuedMessage) {
+    try {
+      const { update } = await createUpdate(
+        {
+          text: queuedMessage.text,
+          status: queuedMessage.status,
+          tags: queuedMessage.tags,
+        },
+        auth.token,
+      );
+      modifyQueue(queuedMessage);
+      onPosted(update);
+      setError(null);
+    } catch (error) {
+      if (isNetworkError(error)) {
+        setError("Failed to connect.");
+      } else {
+        setError(error.message);
+      }
+    }
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
     setIsPosting(true);
+    setText("");
+    setCharCount(0);
+    setStatus("on-track");
 
     try {
-      const { update } = await createUpdate({ text, status }, auth.token);
-      setText("");
-      setCharCount(0);
-      setStatus("on-track");
+      const { update } = await createUpdate({ text, status, tags }, auth.token);
       onPosted(update);
     } catch (err) {
-      setError(err.message);
+      if (isNetworkError(err)) {
+        setError("Failed to connect.");
+        modifyQueue({
+          id: text.concat(Math.round(Math.random() * 100)),
+          text,
+          status,
+          tags,
+        });
+      } else {
+        setError(err.message);
+      }
     } finally {
       setIsPosting(false);
+      setTags([]);
     }
   }
 
@@ -43,13 +126,38 @@ export default function UpdateForm({ auth, onPosted }) {
       <textarea
         placeholder="What's your status today?"
         value={text}
-        onChange={(e) => {setText(e.target.value)
-                setCharCount(e.target.value.length)}}
+        onChange={(e) => {
+          setText(e.target.value);
+          setCharCount(e.target.value.length);
+        }}
         maxLength={1000}
         required
         disabled={isPosting}
       />
-        <label>{charCount}/1000</label>
+      <label>{charCount}/1000</label>
+      <div className="tags-input-container">
+        {tags?.map((tag) => {
+          return (
+            <div className="tags-pill" key={tag}>
+              <span className="tag-name">{tag}</span>
+              <span
+                className="remove-tag"
+                onClick={(e) => setTags(tags.filter((t) => t !== tag))}
+              >
+                &times;
+              </span>
+            </div>
+          );
+        })}
+        <input
+          type="text"
+          className="tag-input"
+          placeholder="Type a tag and press Enter"
+          value={tagText}
+          onChange={(e) => setTagText(e.target.value)}
+          onKeyDown={handleKeyDown}
+        />
+      </div>
       <div className="update-form-row">
         <select
           value={status}
@@ -72,12 +180,13 @@ export default function UpdateForm({ auth, onPosted }) {
             "Post update"
           )}
         </button>
-        
       </div>
       {error && <p className="error">{error}</p>}
+      {messageQueue.length > 0 && (
+        <p className="hint">
+          Waiting for connection. Queued messages: {messageQueue.length}
+        </p>
+      )}
     </form>
   );
 }
-
-
-

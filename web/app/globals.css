@@ -23,6 +23,7 @@
   --reaction-count-text: #555;
   --reaction-button-text: #1a1a2e;
   --focus-indicator: #4b5efc;
+  --mention-text: #4b5efc;
 }
 
 :root[data-theme="dark"] {
@@ -50,6 +51,7 @@
   --reaction-count-text: #f7f7ff;
   --reaction-button-text: #f7f7ff;
   --focus-indicator: #cbd0ff;
+  --mention-text: #b7c0ff;
 }
 
 * {
@@ -58,7 +60,8 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--page-bg);
   color: var(--text-primary);
 }
@@ -160,12 +163,56 @@ section {
   color: var(--placeholder-text);
 }
 
+.tags-input-container {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+  min-height: 40px;
+  padding: 0.5rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--control-bg);
+  color: var(--control-text);
+}
+
+.tags-pill {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.58rem;
+  background: var(--reaction-count-bg);
+  color: var(--reaction-count-text);
+}
+
+.tag-name {
+  transform: translateY(-2px);
+}
+
+.remove-tag {
+  cursor: pointer;
+  transform: translateY(-2px);
+}
+
+.tag-input {
+  border: none;
+  outline: none;
+  flex-grow: 1;
+  padding: 0.5rem 0.5rem;
+  background: var(--reaction-button-bg);
+  color: var(--reaction-button-text);
+}
+
 .update-form label {
   display: flex;
   justify-content: right;
   opacity: 60%;
   font-size: 0.5em;
 }
+
 .update-form-row {
   display: flex;
   gap: 0.5rem;
@@ -190,6 +237,7 @@ section {
 
 .filter-bar {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
 }
@@ -205,49 +253,120 @@ section {
 .update-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 1rem;
 }
 
 .update-card {
+  position: relative;
+  overflow: hidden;
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
-  border-radius: 8px;
-  padding: 1rem;
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+}
+
+.update-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+}
+
+.update-card.status-on-track::before {
+  background: var(--status-on-track-bg);
+}
+
+.update-card.status-blocked::before {
+  background: var(--status-blocked-bg);
+}
+
+.update-card.status-done::before {
+  background: var(--status-done-bg);
 }
 
 .update-card header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.poster {
+  display: flex;
   align-items: center;
-  margin-bottom: 0.5rem;
+  gap: 0.65rem;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
+}
+
+.update-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.update-meta time {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
 }
 
 .author {
   font-weight: bold;
+  font-size: 1rem;
 }
 
 .status-badge {
-  font-size: 0.75rem;
-  padding: 0.2rem 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
   border-radius: 999px;
+  white-space: nowrap;
   color: var(--status-text);
 }
 
-.status-on-track {
+.status-icon {
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+.status-badge.status-on-track {
   background: var(--status-on-track-bg);
 }
 
-.status-blocked {
+.status-badge.status-blocked {
   background: var(--status-blocked-bg);
 }
 
-.status-done {
+.status-badge.status-done {
   background: var(--status-done-bg);
 }
 
 .update-text {
   white-space: pre-wrap;
-  margin: 0.5rem 0;
+  margin: 0.5rem 0 1rem;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.mention {
+  color: var(--mention-text);
+  font-weight: 600;
 }
 
 .update-card footer {
@@ -258,6 +377,9 @@ section {
   color: var(--text-secondary);
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--surface-border);
 }
 
 .reactions {
@@ -274,12 +396,24 @@ section {
 }
 
 .reaction-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   border: 1px solid var(--control-border);
   background: var(--reaction-button-bg);
   border-radius: 999px;
-  padding: 0.1rem 0.5rem;
+  padding: 0.35rem 0.8rem;
   cursor: pointer;
   color: var(--reaction-button-text);
+  font-weight: 500;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px rgba(15, 23, 42, 0.04);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.1s ease;
 }
 
 .theme-toggle:focus-visible,
@@ -289,7 +423,12 @@ section {
 .update-form select:focus-visible,
 .update-form button:focus-visible,
 .filter-bar select:focus-visible,
-.reaction-button:focus-visible {
+.reaction-button:focus-visible,
+.edit-field select:focus-visible,
+.edit-form textarea:focus-visible,
+.edit-btn:focus-visible,
+.save-btn:focus-visible,
+.cancel-btn:focus-visible {
   outline: 2px solid var(--focus-indicator);
   outline-offset: 2px;
 }
@@ -303,10 +442,19 @@ section {
   cursor: pointer;
 }
 
+.delete-btn:focus-visible {
+  outline: 2px solid var(--focus-indicator);
+  outline-offset: 2px;
+}
+
 .update-actions {
   display: flex;
   gap: 6px;
   align-items: center;
+}
+
+.reactions {
+  flex-wrap: wrap;
 }
 
 .hint {
@@ -318,7 +466,6 @@ section {
   color: var(--error-text);
   font-size: 0.9rem;
 }
-
 
 /* Loading spinner for UpdateForm */
 .spinner {
@@ -343,4 +490,166 @@ section {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
+}
+
+/* Edit UI */
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-end;
+}
+
+.edit-field label,
+.edit-form label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.edit-field select {
+  padding: 0.5rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--control-text);
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.edit-form textarea {
+  min-height: 80px;
+  padding: 0.5rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--control-bg);
+  color: var(--control-text);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.edit-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--control-text);
+  cursor: pointer;
+}
+
+.save-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  cursor: pointer;
+}
+
+.save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cancel-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--control-border);
+  border-radius: 4px;
+  background: var(--control-bg);
+  color: var(--control-text);
+  cursor: pointer;
+}
+
+.edit-btn,
+.delete-btn,
+.save-btn,
+.cancel-btn {
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.06),
+    0 4px 10px rgba(15, 23, 42, 0.04);
+  transition:
+    box-shadow 0.18s ease,
+    transform 0.1s ease,
+    filter 0.18s ease;
+}
+
+.edit-btn:hover,
+.delete-btn:hover,
+.cancel-btn:hover,
+.save-btn:hover:not(:disabled) {
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.08),
+    0 8px 18px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.edit-btn:active,
+.delete-btn:active,
+.cancel-btn:active,
+.save-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.08),
+    inset 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+/* Reaction button style */
+.reaction-button:hover:not(:disabled) {
+  background-color: color-mix(
+    in srgb,
+    var(--reaction-button-bg) 92%,
+    var(--control-border)
+  );
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.08),
+    0 8px 18px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.reaction-button:active:not(:disabled) {
+  transform: scale(0.96);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.reaction-button.active {
+  background: #eef2ff;
+  border-color: #6366f1;
+}
+
+.reaction-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.jump-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 50;
+}
+
+.jump-to-top:focus-visible {
+  outline: 2px solid var(--focus-indicator);
+  outline-offset: 2px;
+}
+
+.reaction-emoji {
+  line-height: 1.5;
 }

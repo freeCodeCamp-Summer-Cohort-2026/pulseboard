@@ -8,12 +8,24 @@ const STATUS_OPTIONS = ["on-track", "blocked", "done"];
 
 export default function Feed({ auth, refreshToken }) {
   const [updates, setUpdates] = useState([]);
+  const [allUpdates, setAllUpdates] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [authorFilter, setAuthorFilter] = useState("");
+  const [tagFilter, setTagFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMyUpdates, setShowMyUpdates] = useState(false);
+  const [showJumpToTop, setShowJumpToTop] = useState(false);
+
+  useEffect(() => {
+    function handleScroll() {
+      setShowJumpToTop(window.scrollY > window.innerHeight);
+    }
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -21,6 +33,7 @@ export default function Feed({ auth, refreshToken }) {
     listUpdates({
       status: statusFilter || undefined,
       author: authorFilter || undefined,
+      tag: tagFilter || undefined,
       sort: sortOrder,
     })
       .then(({ updates: fetched }) => {
@@ -35,14 +48,41 @@ export default function Feed({ auth, refreshToken }) {
     return () => {
       cancelled = true;
     };
-  }, [statusFilter, authorFilter, sortOrder, refreshToken]);
+  }, [statusFilter, authorFilter, tagFilter, sortOrder, refreshToken]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    listUpdates()
+      .then(({ updates: fetched }) => {
+        if (!cancelled) setAllUpdates(fetched);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshToken]);
 
   const authors = useMemo(() => {
     const map = new Map();
-    for (const u of updates) {
-      if (u.author?._id) map.set(u.author._id, u.author.displayName);
+
+    for (const u of allUpdates) {
+      if (u.author?._id) {
+        map.set(u.author._id, u.author.displayName);
+      }
     }
     return Array.from(map.entries());
+  }, [allUpdates]);
+
+  const tags = useMemo(() => {
+    const tagsArray = [];
+    for (const u of updates) {
+      tagsArray.push(...(u.tags ?? []));
+    }
+    return [...new Set(tagsArray)];
   }, [updates]);
 
   function handleUpdated(updated) {
@@ -55,16 +95,20 @@ export default function Feed({ auth, refreshToken }) {
     setUpdates((prev) => prev.filter((update) => update._id !== deleteId));
   }
 
+  function handleJumpToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   function handleShowMyUpdates() {
     try {
       setShowMyUpdates(!showMyUpdates);
-      if (!showMyUpdates){
+      if (!showMyUpdates) {
         setAuthorFilter(auth ? auth.user._id : "");
       } else {
         setAuthorFilter("");
       }
     } catch (err) {
-       setError(err.message);
+      setError(err.message);
     }
   }
 
@@ -91,18 +135,38 @@ export default function Feed({ auth, refreshToken }) {
             <option key={id} value={id}>
               {name}
             </option>
-            ))}
+          ))}
         </select>
-        {auth && (<div>
-          <input id="show-updates-checkbox" type="checkbox" checked={showMyUpdates} onChange={handleShowMyUpdates}/>
-          <label htmlFor="show-updates-checkbox">Show My Updates</label>
-        </div>)}
-        <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+        <select
+          value={tagFilter}
+          onChange={(e) => setTagFilter(e.target.value)}
+        >
+          <option value="">All tags</option>
+          {tags.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
+        {auth && (
+          <div>
+            <input
+              id="show-updates-checkbox"
+              type="checkbox"
+              checked={showMyUpdates}
+              onChange={handleShowMyUpdates}
+            />
+            <label htmlFor="show-updates-checkbox">Show My Updates</label>
+          </div>
+        )}
+        <select
+          value={sortOrder}
+          onChange={(e) => setSortOrder(e.target.value)}
+        >
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
           <option value="most-reactions">Most reactions</option>
         </select>
-        
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -122,6 +186,17 @@ export default function Feed({ auth, refreshToken }) {
           />
         ))}
       </div>
+
+      {showJumpToTop && (
+        <button
+          type="button"
+          className="jump-to-top"
+          onClick={handleJumpToTop}
+          aria-label="Jump to top"
+        >
+          ↑ Top
+        </button>
+      )}
     </div>
   );
 }

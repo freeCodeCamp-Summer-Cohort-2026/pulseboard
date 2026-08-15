@@ -12,14 +12,17 @@ const createUpdateLimiter = rateLimit({
   limit: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many updates posted. Please wait a minute before posting again." },
+  message: {
+    error:
+      "Too many updates posted. Please wait a minute before posting again.",
+  },
   keyGenerator: (req) => req.user?.id,
 });
 
-// GET /api/updates?author=<userId>&status=<on-track|blocked|done>&sort=<newest|oldest|most-reactions>
+// GET /api/updates?author=<userId>&status=<on-track|blocked|done>&tag=<free-form-tag>&sort=<newest|oldest|most-reactions>
 router.get("/", async (req, res) => {
   try {
-    const { author, status, sort } = req.query;
+    const { author, status, tag, sort, q } = req.query;
     const filter = {};
 
     if (author) {
@@ -33,6 +36,10 @@ router.get("/", async (req, res) => {
         });
       }
       filter.status = status;
+    }
+
+    if (tag) {
+      filter.tags = tag;
     }
 
     if (sort) {
@@ -49,11 +56,20 @@ router.get("/", async (req, res) => {
       .populate("author", "displayName email")
       .populate("reactions.user", "displayName email");
 
-    if (sort === "most-reactions") {
-      updates.sort((a, b) => b.reactions.length - a.reactions.length);
+    let filterUpdates = updates;
+
+    if (q) {
+      const searchString = q.trim().toLowerCase();
+      filterUpdates = updates.filter((update) => {
+        return update.text.toLowerCase().includes(searchString);
+      });
     }
 
-    return res.json({ updates });
+    if (sort === "most-reactions") {
+      filterUpdates.sort((a, b) => b.reactions.length - a.reactions.length);
+    }
+
+    return res.json({ updates: filterUpdates });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch updates" });
   }
@@ -105,6 +121,12 @@ router.patch("/:id", requireAuth, async (req, res) => {
         });
       }
 
+      if (text.length > 1000) {
+        return res.status(400).json({
+          error: "text must be 1000 characters or fewer",
+        });
+      }
+
       update.text = text.trim();
     }
 
@@ -146,35 +168,62 @@ router.delete("/:id", requireAuth, checkRole("LEAD", "MEMBER"), async (req, res)
 });
 
 // POST /api/updates
-router.post("/", requireAuth, createUpdateLimiter, checkRole("LEAD", "MEMBER"), async (req, res) => {
-  try {
-    const { text, status } = req.body;
+router.post(
+  "/",
+  requireAuth,
+  createUpdateLimiter,
+  checkRole("LEAD", "MEMBER"),
+  async (req, res) => {
+    try {
+      const { text, status, tags } = req.body;
 
-    if (!text || !text.trim()) {
-      return res
-        .status(400)
-        .json({ error: "text is required and cannot be empty" });
-    }
+      if (!text || !text.trim()) {
+        return res
+          .status(400)
+          .json({ error: "text is required and cannot be empty" });
+      }
 
-    if (!status || !STATUS_VALUES.includes(status)) {
-      return res.status(400).json({
-        error: `status is required and must be one of: ${STATUS_VALUES.join(", ")}`,
+      if (text.length > 1000) {
+        return res
+          .status(400)
+          .json({ error: "text must be 1000 characters or fewer" });
+      }
+
+      if (!status || !STATUS_VALUES.includes(status)) {
+        return res.status(400).json({
+          error: `status is required and must be one of: ${STATUS_VALUES.join(", ")}`,
+        });
+      }
+
+      function normalizeTags(tags) {
+        if (!Array.isArray(tags)) {
+          return [];
+        }
+
+        return [
+          ...new Set(
+            tags
+              .filter((tag) => typeof tag === "string" && tag.trim() !== "")
+              .map((tag) => tag.trim().toLowerCase().replace(/\s+/g, " ")),
+          ),
+        ];
+      }
+
+      const update = await Update.create({
+        author: req.user.id,
+        text: text.trim(),
+        status,
+        tags: normalizeTags(tags),
       });
+
+      const populated = await update.populate("author", "displayName email");
+
+      return res.status(201).json({ update: populated });
+    } catch (err) {
+      return res.status(500).json({ error: "Failed to create update" });
     }
-
-    const update = await Update.create({
-      author: req.user.id,
-      text: text.trim(),
-      status,
-    });
-
-    const populated = await update.populate("author", "displayName email");
-
-    return res.status(201).json({ update: populated });
-  } catch (err) {
-    return res.status(500).json({ error: "Failed to create update" });
-  }
-});
+  },
+);
 
 // POST /api/updates/:id/reactions
 router.post(
@@ -187,6 +236,12 @@ router.post(
 
       if (!emoji || !emoji.trim()) {
         return res.status(400).json({ error: "emoji is required" });
+      }
+
+      if (emoji.length > 8) {
+        return res
+          .status(400)
+          .json({ error: "emoji cannot exceed 8 characters" });
       }
 
       const update = await Update.findById(req.params.id);
@@ -251,6 +306,7 @@ router.delete(
 
       return res.json({ update: populated });
     } catch (err) {
+      console.error(err);
       return res.status(400).json({ error: "Invalid update or reaction id" });
     }
   },
