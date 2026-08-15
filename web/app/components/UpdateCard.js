@@ -253,7 +253,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
                   Edit
                 </button>
               )}
-              {auth?.user?.role === "LEAD" && (
+                {(auth?.user?.role === "LEAD" || auth?.user?._id === update.author?._id) && (
                 <button
                   className="delete-btn"
                   type="button"

@@ -131,7 +131,7 @@ router.patch("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/:id", requireAuth, checkRole("LEAD"), async (req, res) => {
+router.delete("/:id", requireAuth, checkRole("LEAD", "MEMBER"), async (req, res) => {
   try {
     const result = await Update.findByIdAndDelete(req.params.id);
 
