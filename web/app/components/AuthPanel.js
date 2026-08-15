@@ -28,6 +28,11 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
   async function handleSubmit(e) {
     e.preventDefault();
     setError(null);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
     setLoading(true);
 
     if (mode === "register" && password !== confirmPassword) {
