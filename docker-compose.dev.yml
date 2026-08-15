@@ -18,6 +18,7 @@ services:
     api:
         build:
             target: dev
+        command: npm run dev
         develop:
             watch:
                 - action: sync
