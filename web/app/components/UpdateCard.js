@@ -301,26 +301,6 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
           </div>
         ) : (
           <>
-            {auth?.user?._id === update.author?._id && (
-              <button
-                type="button"
-                className="edit-btn"
-                onClick={handleEditStart}
-              >
-                Edit
-              </button>
-            )}
-            {auth?.user?.role === "LEAD" && (
-              <button
-                className="delete-btn"
-                type="button"
-                onClick={handleDelete}
-              >
-                Delete
-              </button>
-            </div>
-          ) : (
-            <>
               {auth?.user?._id === update.author?._id && (
                 <button
                   type="button"
@@ -341,7 +321,6 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
               )}
             </>
           )}
-        </div>
       </footer>
       {error && <p className="error">{error}</p>}
     </article>
