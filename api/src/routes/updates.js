@@ -217,7 +217,7 @@ router.post(
       });
 
       const populated = await update.populate("author", "displayName email");
-      
+
       //* Broadcast event of post being made
       const io = req.app.get("io");
       io.emit("POST:update", update);
@@ -262,14 +262,15 @@ router.post(
           .json({ error: "You already reacted with that emoji" });
       }
 
-      update.reactions.push({ emoji, user: req.user.id });
+      const reaction = { emoji, user: req.user.id };
+      update.reactions.push(reaction);
       await update.save();
 
       const populated = await update.populate([
         { path: "author", select: "displayName email" },
         { path: "reactions.user", select: "displayName email" },
       ]);
-      
+
       const io = req.app.get("io");
       io.emit("POST:reaction", { updateId: req.params.id, reaction });
 
