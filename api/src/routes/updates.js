@@ -216,7 +216,10 @@ router.post(
         tags: normalizeTags(tags),
       });
 
-      const populated = await update.populate("author", "displayName email");
+      const populated = await update.populate([
+        { path: "author", select: "displayName email" },
+        { path: "reactions.user", select: "displayName email" },
+      ]);
 
       //* Broadcast event of post being made
       const io = req.app.get("io");
