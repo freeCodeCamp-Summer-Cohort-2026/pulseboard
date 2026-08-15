@@ -223,7 +223,7 @@ router.post(
 
       //* Broadcast event of post being made
       const io = req.app.get("io");
-      io.emit("POST:update", populated);
+      io?.emit("POST:update", populated);
 
       return res.status(201).json({ update: populated });
     } catch (err) {
@@ -275,7 +275,7 @@ router.post(
       ]);
 
       const io = req.app.get("io");
-      io.emit("POST:reaction", { updateId: req.params.id, reaction });
+      io?.emit("POST:reaction", { updateId: req.params.id, reaction });
 
       return res.status(201).json({ update: populated });
     } catch (err) {

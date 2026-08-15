@@ -30,7 +30,7 @@ describe("Socket.IO event emitting logic", () => {
       updates.push(newUpdate);
 
       const io = req.app.get("io");
-      io.emit("POST:update", newUpdate);
+      io?.emit("POST:update", newUpdate);
       res.status(201).json(newUpdate);
     });
 
@@ -39,7 +39,7 @@ describe("Socket.IO event emitting logic", () => {
       const reaction = { userId: req.body.userId, emoji: req.body.emoji };
 
       const io = req.app.get("io");
-      io.emit("POST:reaction", { updateId: req.params.id, reaction });
+      io?.emit("POST:reaction", { updateId: req.params.id, reaction });
 
       return res.status(201).json(reaction);
     });
