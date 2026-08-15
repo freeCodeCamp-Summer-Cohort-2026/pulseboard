@@ -11,6 +11,8 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   if (auth) {
     return (
@@ -85,25 +87,46 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
         onChange={(e) => setEmail(e.target.value)}
         required
       />
-
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        minLength={8}
-      />
-
-      {mode === "register" && (
+      <div className="password-field">
         <input
-          type="password"
-          placeholder="Confirm password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          type={showPassword ? "text" : "password"}
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
         />
+        <button
+          type="button"
+          onClick={() => setShowPassword((prev) => !prev)}
+          aria-label={showPassword ? "Hide password" : "Show password"}
+        >
+          {showPassword ? "Hide" : "Show"}
+        </button>
+      </div>
+
+      {mode === "register" && (
+        <div className="password-field">
+          <input
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Confirm password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={8}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword((prev) => !prev)}
+            aria-label={
+              showConfirmPassword
+                ? "Hide confirm password"
+                : "Show confirm password"
+            }
+          >
+            {showConfirmPassword ? "Hide" : "Show"}
+          </button>
+        </div>
       )}
 
       <button type="submit" disabled={loading}>
