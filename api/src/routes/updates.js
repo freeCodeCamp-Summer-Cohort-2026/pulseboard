@@ -75,6 +75,7 @@ router.get("/", async (req, res) => {
   }
 });
 
+<<<<<<< HEAD
 // GET /api/updates/leaderboard?days=7
 router.get("/leaderboard", async (req, res) => {
   try {
@@ -144,6 +145,131 @@ router.get("/leaderboard", async (req, res) => {
   }
 });
 
+=======
+// GET /api/updates/export?start=<date>&end=<date>&format=csv|json
+// Exports updates within a date range as JSON or CSV
+router.get("/export", async (req, res) => {
+  try {
+    const { start, end, format = "json" } = req.query;
+
+    // Validate both dates are provided
+    if (!start || !end) {
+      return res.status(400).json({
+        error: "Both start and end dates are required",
+      });
+    }
+
+    // Validate date format
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return res.status(400).json({
+        error: "Invalid date format. Use ISO date strings (YYYY-MM-DD)",
+      });
+    }
+
+    // Ensure start date is before end date
+    if (startDate > endDate) {
+      return res.status(400).json({
+        error: "Start date must be before end date",
+      });
+    }
+
+    // Set end date to end of day to include all updates from that day
+    endDate.setHours(23, 59, 59, 999);
+
+    // Query updates within date range
+    const updates = await Update.find({
+      createdAt: {
+        $gte: startDate,
+        $lte: endDate,
+      },
+    }).populate("author", "displayName email");
+
+    // Format the data for export
+    const exportData = updates.map((update) => ({
+      author: update.author?.displayName || "Unknown",
+      email: update.author?.email || "Unknown",
+      text: update.text,
+      status: update.status,
+      createdAt: update.createdAt.toISOString(),
+      reactionCount: update.reactions?.length || 0,
+      tags: update.tags?.join("; ") || "",
+    }));
+
+    // Handle empty results
+    if (exportData.length === 0) {
+      return res.status(200).json({
+        message: "No updates found in the given date range",
+        count: 0,
+        data: [],
+      });
+    }
+        
+    if (format.toLowerCase() === "csv") {
+      return exportAsCSV(res, exportData);
+    }
+
+    // Default: JSON format
+    return res.json({
+      count: exportData.length,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      data: exportData,
+    });
+  } catch (err) {
+    console.error("Export error:", err);
+    return res.status(500).json({ error: "Failed to export updates" });
+  }
+});
+
+// Helper function to export data as CSV
+function exportAsCSV(res, data) {
+  // Defined CSV headers
+  const headers = [
+    "Author",
+    "Email",
+    "Text",
+    "Status",
+    "Created At",
+    "Reaction Count",
+    "Tags",
+  ];
+
+  // Escape quotes in text fields for CSV compatibility
+  const escapeCSV = (str) => {
+    if (typeof str !== "string") return str;
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
+  // Build CSV rows
+  const rows = data.map((row) => [
+    escapeCSV(row.author),
+    escapeCSV(row.email),
+    escapeCSV(row.text),
+    row.status,
+    row.createdAt,
+    row.reactionCount,
+    escapeCSV(row.tags),
+  ]);
+
+  // Combine headers and rows into CSV content
+  const csvContent = [
+    headers.join(","),
+    ...rows.map((row) => row.join(",")),
+  ].join("\n");
+
+  // Set response headers for CSV download
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename=updates_export_${Date.now()}.csv`
+  );
+  return res.send(csvContent);
+}
+
+>>>>>>> 3cc578f (feat: add CSV export of updates for date range)
 // GET /api/updates/:id
 router.get("/:id", async (req, res) => {
   try {
