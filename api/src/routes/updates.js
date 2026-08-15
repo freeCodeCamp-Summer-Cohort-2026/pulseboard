@@ -223,7 +223,7 @@ router.post(
 
       //* Broadcast event of post being made
       const io = req.app.get("io");
-      io.emit("POST:update", update);
+      io.emit("POST:update", populated);
 
       return res.status(201).json({ update: populated });
     } catch (err) {
