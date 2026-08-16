@@ -13,28 +13,69 @@ export default function Feed({ auth, refreshToken }) {
   const [sortOrder, setSortOrder] = useState("newest");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const LIMIT = 10;
 
   useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    listUpdates({
+  let cancelled = false;
+
+  setLoading(true);
+  setPage(1);
+
+  listUpdates({
+    status: statusFilter || undefined,
+    author: authorFilter || undefined,
+    sort: sortOrder,
+    page: 1,
+    limit: LIMIT,
+  })
+    .then(({ updates: fetched, pagination }) => {
+      if (!cancelled) {
+        setUpdates(fetched);
+        setHasNextPage(pagination.hasNextPage);
+      }
+    })
+    .catch((err) => {
+      if (!cancelled) setError(err.message);
+    })
+    .finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+  return () => {
+    cancelled = true;
+  };
+}, [statusFilter, authorFilter, sortOrder, refreshToken]);
+
+async function loadMore() {
+  if (loadingMore || !hasNextPage) return;
+
+  setLoadingMore(true);
+  setError(null);
+
+  try {
+    const nextPage = page + 1;
+
+    const { updates: fetched, pagination } = await listUpdates({
       status: statusFilter || undefined,
       author: authorFilter || undefined,
       sort: sortOrder,
-    })
-      .then(({ updates: fetched }) => {
-        if (!cancelled) setUpdates(fetched);
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [statusFilter, authorFilter, sortOrder, refreshToken]);
+      page: nextPage,
+      limit: LIMIT,
+    });
+
+    setUpdates((prev) => [...prev, ...fetched]);
+    setPage(nextPage);
+    setHasNextPage(pagination.hasNextPage);
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoadingMore(false);
+  }
+}
 
   const authors = useMemo(() => {
     const map = new Map();
@@ -79,10 +120,21 @@ export default function Feed({ auth, refreshToken }) {
       {!loading && updates.length === 0 && <p className="hint">No updates yet.</p>}
 
       <div className="update-list">
-        {updates.map((update) => (
-          <UpdateCard key={update._id} update={update} auth={auth} onUpdated={handleUpdated} />
-        ))}
-      </div>
+      {updates.map((update) => (
+        <UpdateCard
+          key={update._id}
+          update={update}
+          auth={auth}
+          onUpdated={handleUpdated}
+        />
+      ))}
+    </div>
+
+    {hasNextPage && (
+      <button onClick={loadMore} disabled={loadingMore}>
+        {loadingMore ? "Loading..." : "Load more"}
+      </button>
+    )}
     </div>
   );
 }
