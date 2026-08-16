@@ -185,17 +185,15 @@ router.get("/export", async (req, res) => {
         $gte: startDate,
         $lte: endDate,
       },
-    }).populate("author", "displayName email");
+    }).populate("author", "displayName");
 
-    // Format the data for export
+    // Format the data for export - ONLY required fields
     const exportData = updates.map((update) => ({
       author: update.author?.displayName || "Unknown",
-      email: update.author?.email || "Unknown",
       text: update.text,
       status: update.status,
       createdAt: update.createdAt.toISOString(),
       reactionCount: update.reactions?.length || 0,
-      tags: update.tags?.join("; ") || "",
     }));
 
     // Handle empty results
@@ -206,7 +204,7 @@ router.get("/export", async (req, res) => {
         data: [],
       });
     }
-        
+
     if (format.toLowerCase() === "csv") {
       return exportAsCSV(res, exportData);
     }
@@ -226,15 +224,13 @@ router.get("/export", async (req, res) => {
 
 // Helper function to export data as CSV
 function exportAsCSV(res, data) {
-  // Defined CSV headers
+  // Define CSV headers - ONLY required fields
   const headers = [
     "Author",
-    "Email",
     "Text",
     "Status",
     "Created At",
     "Reaction Count",
-    "Tags",
   ];
 
   // Escape quotes in text fields for CSV compatibility
@@ -246,12 +242,10 @@ function exportAsCSV(res, data) {
   // Build CSV rows
   const rows = data.map((row) => [
     escapeCSV(row.author),
-    escapeCSV(row.email),
     escapeCSV(row.text),
     row.status,
     row.createdAt,
     row.reactionCount,
-    escapeCSV(row.tags),
   ]);
 
   // Combine headers and rows into CSV content

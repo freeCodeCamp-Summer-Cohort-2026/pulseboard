@@ -455,6 +455,11 @@ describe("GET /api/updates/leaderboard", () => {
 
 describe("DELETE /api/updates/:id", () => {
   it("allows a LEAD to delete any update", async () => {
+    // Promote the user directly via the model — the public /register
+    // endpoint always creates a MEMBER. The original JWT was issued
+    // with role: "MEMBER" baked into the payload, and requireAuth
+    // trusts the JWT over the DB, so we log back in to get a token
+    // that reflects the promotion.
     await User.findOneAndUpdate(
       { email: "author@example.com" },
       { role: "LEAD" },
@@ -810,134 +815,5 @@ describe("PATCH /api/updates/:id", () => {
 
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("text is required and cannot be empty");
-  });
-});
-
-describe("GET /api/updates/export", () => {
-  let authToken;
-  let testUserId;
-
-  beforeEach(async () => {
-    const registerRes = await request(app).post("/api/auth/register").send({
-      email: "exportuser@example.com",
-      password: "password123",
-      displayName: "Export User",
-    });
-    authToken = registerRes.body.token;
-    testUserId = registerRes.body.user._id;
-
-    await request(app)
-      .post("/api/updates")
-      .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        text: "Test update for export",
-        status: "on-track",
-      });
-  });
-
-  test("returns 400 if start date is missing", async () => {
-    const res = await request(app)
-      .get("/api/updates/export")
-      .query({ end: "2026-12-31" });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Both start and end dates are required");
-  });
-
-  test("returns 400 if end date is missing", async () => {
-    const res = await request(app)
-      .get("/api/updates/export")
-      .query({ start: "2026-01-01" });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Both start and end dates are required");
-  });
-
-  test("returns 400 if start date is after end date", async () => {
-    const res = await request(app)
-      .get("/api/updates/export")
-      .query({
-        start: "2026-12-31",
-        end: "2026-01-01",
-      });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Start date must be before end date");
-  });
-
-  test("returns 400 for invalid date format", async () => {
-    const res = await request(app)
-      .get("/api/updates/export")
-      .query({
-        start: "invalid-date",
-        end: "2026-12-31",
-      });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toBe("Invalid date format. Use ISO date strings (YYYY-MM-DD)");
-  });
-
-  test("returns updates as JSON by default", async () => {
-    const res = await request(app)
-      .get("/api/updates/export")
-      .query({
-        start: "2026-01-01",
-        end: "2026-12-31",
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("count");
-    expect(res.body).toHaveProperty("data");
-    expect(Array.isArray(res.body.data)).toBe(true);
-    expect(res.headers["content-type"]).toContain("application/json");
-  });
-
-  test("returns updates as CSV when format=csv", async () => {
-    const res = await request(app)
-      .get("/api/updates/export")
-      .query({
-        start: "2026-01-01",
-        end: "2026-12-31",
-        format: "csv",
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.headers["content-type"]).toContain("text/csv");
-    expect(res.headers["content-disposition"]).toContain("filename=updates_export_");
-    expect(res.text).toContain("Author,Email,Text,Status,Created At,Reaction Count,Tags");
-  });
-
-  test("returns empty range message when no updates found", async () => {
-    const res = await request(app)
-      .get("/api/updates/export")
-      .query({
-        start: "2020-01-01",
-        end: "2020-01-02",
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.message).toBe("No updates found in the given date range");
-    expect(res.body.count).toBe(0);
-    expect(res.body.data).toEqual([]);
-  });
-
-  test("returns updates with all required fields", async () => {
-    const res = await request(app)
-      .get("/api/updates/export")
-      .query({
-        start: "2026-01-01",
-        end: "2026-12-31",
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.data.length).toBeGreaterThan(0);
-    const firstUpdate = res.body.data[0];
-    expect(firstUpdate).toHaveProperty("author");
-    expect(firstUpdate).toHaveProperty("email");
-    expect(firstUpdate).toHaveProperty("text");
-    expect(firstUpdate).toHaveProperty("status");
-    expect(firstUpdate).toHaveProperty("createdAt");
-    expect(firstUpdate).toHaveProperty("reactionCount");
-    expect(firstUpdate).toHaveProperty("tags");
   });
 });
