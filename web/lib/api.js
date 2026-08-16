@@ -50,8 +50,8 @@ export function listUpdates({
   status,
   tag,
   sort,
-  page,
-  limit,
+  page = 1,
+  limit = 10,
 } = {}) {
 
   const params = new URLSearchParams();

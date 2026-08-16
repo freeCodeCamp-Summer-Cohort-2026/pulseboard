@@ -48,6 +48,12 @@ const limit = Math.min(
       filter.tags = tag;
     }
 
+    if (q && q.trim()) {
+      filter.text = {
+        $regex: q.trim(),
+        $options: "i",
+      };
+    }
     if (sort) {
       if (!SORT_VALUES.includes(sort)) {
         return res.status(400).json({
