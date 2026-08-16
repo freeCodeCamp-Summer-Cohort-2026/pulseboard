@@ -8,7 +8,73 @@ jest.mock("@/lib/api", () => ({
 
 const auth = {
   token: "test-token",
+  user: { _id: "u1", displayName: "Tester" },
 };
+
+const key = `updateDraft:${auth.user._id}`;
+
+describe("UpdateForm draft", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("restores a saved draft after a re-mount", () => {
+    const { unmount } = render(<UpdateForm auth={auth} onPosted={() => {}} />);
+
+    fireEvent.change(screen.getByPlaceholderText("What's your status today?"), {
+      target: { value: "Test Status!" },
+    });
+    unmount();
+
+    render(<UpdateForm auth={auth} onPosted={() => {}} />);
+    expect(
+      screen.getByPlaceholderText("What's your status today?"),
+    ).toHaveValue("Test Status!");
+    unmount();
+  });
+
+  it("clears the draft after a successful submit", async () => {
+    localStorage.setItem(
+      key,
+      JSON.stringify({ text: "saved", status: "blocked" }),
+    );
+    createUpdate.mockResolvedValue({
+      update: {
+        id: "1",
+        text: "saved",
+        status: "blocked",
+      },
+    });
+
+    const { unmount } = render(<UpdateForm auth={auth} onPosted={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /post update/i }));
+    await waitFor(() => expect(localStorage.getItem(key)).toBeNull());
+
+    expect(
+      screen.getByPlaceholderText(/what's your status today?/i),
+    ).toHaveValue("");
+    unmount();
+  });
+
+  it("restores a saved draft when auth loads after mount", () => {
+    localStorage.setItem(
+      key,
+      JSON.stringify({ text: "saved", status: "blocked" }),
+    );
+
+    const { rerender, unmount } = render(
+      <UpdateForm auth={null} onPosted={() => {}} />,
+    );
+    rerender(<UpdateForm auth={auth} onPosted={() => {}} />);
+
+    expect(
+      screen.getByPlaceholderText("What's your status today?"),
+    ).toHaveValue("saved");
+    unmount();
+  });
+});
 
 describe("UpdateForm loading state", () => {
   beforeEach(() => {
