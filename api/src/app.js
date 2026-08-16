@@ -14,7 +14,7 @@ function createApp() {
   // can't accidentally hammer the shared demo instance.
   const writeLimiter = rateLimit({
     windowMs: 60 * 1000,
-    limit: 30,
+    limit: process.env.NODE_ENV === "test" ? 300 : 30,
     standardHeaders: true,
     legacyHeaders: false,
   });

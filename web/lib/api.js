@@ -13,10 +13,18 @@ async function request(path, { method = "GET", body, token } = {}) {
     cache: "no-store",
   });
 
+  // DELETE returns 204 and has no response body
+  if (res.status === 204) {
+    return null;
+  }
+
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    const message = data && data.error ? data.error : `Request failed with status ${res.status}`;
+    const message =
+      data && data.error
+        ? data.error
+        : `Request failed with status ${res.status}`;
     throw new Error(message);
   }
 
@@ -40,14 +48,17 @@ export function login({ email, password }) {
 export function listUpdates({
   author,
   status,
+  tag,
   sort,
   page,
   limit,
 } = {}) {
+
   const params = new URLSearchParams();
 
   if (author) params.set("author", author);
   if (status) params.set("status", status);
+  if (tag) params.set("tag", tag);
   if (sort) params.set("sort", sort);
   if (page) params.set("page", page);
   if (limit) params.set("limit", limit);
@@ -57,10 +68,25 @@ export function listUpdates({
   return request(`/api/updates${query}`);
 }
 
-export function createUpdate({ text, status }, token) {
+export function createUpdate({ text, status, tags }, token) {
   return request("/api/updates", {
     method: "POST",
+    body: { text, status, tags },
+    token,
+  });
+}
+
+export function editUpdate(updateId, { text, status }, token) {
+  return request(`/api/updates/${updateId}`, {
+    method: "PATCH",
     body: { text, status },
+    token,
+  });
+}
+
+export function deleteUpdate(updateId, token) {
+  return request(`/api/updates/${updateId}`, {
+    method: "DELETE",
     token,
   });
 }

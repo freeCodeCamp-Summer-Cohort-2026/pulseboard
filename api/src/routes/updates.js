@@ -1,8 +1,8 @@
 const express = require("express");
 const Update = require("../models/Update");
 const { STATUS_VALUES } = require("../models/Update");
-const { requireAuth } = require("../middleware/auth");
 const rateLimit = require("express-rate-limit");
+const { requireAuth, checkRole } = require("../middleware/auth");
 const SORT_VALUES = ["newest", "oldest", "most-reactions"];
 
 const router = express.Router();
@@ -12,20 +12,23 @@ const createUpdateLimiter = rateLimit({
   limit: 15,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many updates posted. Please wait a minute before posting again." },
+  message: {
+    error:
+      "Too many updates posted. Please wait a minute before posting again.",
+  },
   keyGenerator: (req) => req.user?.id,
 });
 
-// GET /api/updates?author=<userId>&status=<on-track|blocked|done>&sort=<newest|oldest|most-reactions>
+// GET /api/updates?author=<userId>&status=<on-track|blocked|done>&tag=<free-form-tag>&sort=<newest|oldest|most-reactions>
 router.get("/", async (req, res) => {
   try {
-    const { author, status, sort } = req.query;
+const { author, status, tag, sort, q } = req.query;
 
-    const page = Math.max(parseInt(req.query.page,10) || 1, 1);
-    const limit = Math.min(
-      Math.max(parseInt(req.query.limit,10) || 10, 1),
-    50
-  );
+const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+const limit = Math.min(
+  Math.max(parseInt(req.query.limit, 10) || 10, 1),
+  50
+);
     const filter = {};
 
     if (author) {
@@ -39,6 +42,10 @@ router.get("/", async (req, res) => {
         });
       }
       filter.status = status;
+    }
+
+    if (tag) {
+      filter.tags = tag;
     }
 
     if (sort) {
@@ -93,8 +100,78 @@ if (sort === "most-reactions") {
         hasNextPage,
       },
     });
+
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch updates" });
+  }
+});
+
+// GET /api/updates/leaderboard?days=7
+router.get("/leaderboard", async (req, res) => {
+  try {
+    const days = req.query.days === undefined ? 7 : Number(req.query.days);
+
+    if (!Number.isFinite(days) || days <= 0) {
+      return res.status(400).json({
+        error: "days must be a positive number",
+      });
+    }
+
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+    const leaderboard = await Update.aggregate([
+      {
+        $match: {
+          createdAt: {
+            $gte: since,
+            $lte: new Date(),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: "$author",
+          updateCount: { $sum: 1 },
+          reactionCount: {
+            $sum: { $size: "$reactions" },
+          },
+        },
+      },
+      {
+        $sort: {
+          updateCount: -1,
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "author",
+        },
+      },
+      {
+        $unwind: "$author",
+      },
+      {
+        $project: {
+          _id: 0,
+          author: {
+            _id: "$author._id",
+            displayName: "$author.displayName",
+            email: "$author.email",
+          },
+          updateCount: 1,
+          reactionCount: 1,
+        },
+      },
+    ]);
+
+    return res.json({ leaderboard });
+  } catch (err) {
+    return res.status(500).json({
+      error: "Failed to fetch leaderboard",
+    });
   }
 });
 
@@ -115,88 +192,54 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST /api/updates
-router.post("/", requireAuth, createUpdateLimiter, async (req, res) => {
+router.patch("/:id", requireAuth, async (req, res) => {
   try {
     const { text, status } = req.body;
 
-    if (!text || !text.trim()) {
-      return res.status(400).json({ error: "text is required and cannot be empty" });
+    const update = await Update.findById(req.params.id);
+
+    if (!update) {
+      return res.status(404).json({ error: "Update not found" });
     }
 
-    if (!status || !STATUS_VALUES.includes(status)) {
-      return res.status(400).json({
-        error: `status is required and must be one of: ${STATUS_VALUES.join(", ")}`,
+    if (update.author.toString() !== req.user.id) {
+      return res.status(403).json({
+        error: "You can only edit your own updates",
       });
     }
 
-    const update = await Update.create({
-      author: req.user.id,
-      text: text.trim(),
-      status,
-    });
-
-    const populated = await update.populate("author", "displayName email");
-
-    return res.status(201).json({ update: populated });
-  } catch (err) {
-    return res.status(500).json({ error: "Failed to create update" });
-  }
-});
-
-// POST /api/updates/:id/reactions
-router.post("/:id/reactions", requireAuth, async (req, res) => {
-  try {
-    const { emoji } = req.body;
-
-    if (!emoji || !emoji.trim()) {
-      return res.status(400).json({ error: "emoji is required" });
+    if (text === undefined && status === undefined) {
+      return res.status(400).json({
+        error: "At least one of text or status is required",
+      });
     }
 
-    const update = await Update.findById(req.params.id);
-    if (!update) {
-      return res.status(404).json({ error: "Update not found" });
+    if (text !== undefined) {
+      if (!text || !text.trim()) {
+        return res.status(400).json({
+          error: "text is required and cannot be empty",
+        });
+      }
+
+      if (text.length > 1000) {
+        return res.status(400).json({
+          error: "text must be 1000 characters or fewer",
+        });
+      }
+
+      update.text = text.trim();
     }
 
-    const alreadyReacted = update.reactions.some(
-      (r) => r.user.toString() === req.user.id && r.emoji === emoji
-    );
-    if (alreadyReacted) {
-      return res.status(409).json({ error: "You already reacted with that emoji" });
+    if (status !== undefined) {
+      if (!STATUS_VALUES.includes(status)) {
+        return res.status(400).json({
+          error: `status must be one of: ${STATUS_VALUES.join(", ")}`,
+        });
+      }
+
+      update.status = status;
     }
 
-    update.reactions.push({ emoji, user: req.user.id });
-    await update.save();
-
-    const populated = await update.populate([
-      { path: "author", select: "displayName email" },
-      { path: "reactions.user", select: "displayName email" },
-    ]);
-
-    return res.status(201).json({ update: populated });
-  } catch (err) {
-    return res.status(400).json({ error: "Invalid update id" });
-  }
-});
-
-// DELETE /api/updates/:id/reactions/:reactionId
-router.delete("/:id/reactions/:reactionId", requireAuth, async (req, res) => {
-  try {
-    const update = await Update.findById(req.params.id);
-    if (!update) {
-      return res.status(404).json({ error: "Update not found" });
-    }
-
-    const reaction = update.reactions.id(req.params.reactionId);
-    if (!reaction) {
-      return res.status(404).json({ error: "Reaction not found" });
-    }
-
-    if (reaction.user.toString() !== req.user.id) {
-      return res.status(403).json({ error: "You can only remove your own reactions" });
-    }
-
-    reaction.deleteOne();
     await update.save();
 
     const populated = await update.populate([
@@ -206,8 +249,167 @@ router.delete("/:id/reactions/:reactionId", requireAuth, async (req, res) => {
 
     return res.json({ update: populated });
   } catch (err) {
-    return res.status(400).json({ error: "Invalid update or reaction id" });
+    return res.status(400).json({ error: "Invalid update id" });
   }
 });
+
+router.delete("/:id", requireAuth, checkRole("LEAD"), async (req, res) => {
+  try {
+    const result = await Update.findByIdAndDelete(req.params.id);
+
+    if (!result) {
+      return res.status(404).json({ error: "Update not found" });
+    }
+
+    return res.status(200).json(req.params.id);
+  } catch (err) {
+    return res.status(400).json({ error: "Invalid update id" });
+  }
+});
+
+// POST /api/updates
+router.post(
+  "/",
+  requireAuth,
+  createUpdateLimiter,
+  checkRole("LEAD", "MEMBER"),
+  async (req, res) => {
+    try {
+      const { text, status, tags } = req.body;
+
+      if (!text || !text.trim()) {
+        return res
+          .status(400)
+          .json({ error: "text is required and cannot be empty" });
+      }
+
+      if (text.length > 1000) {
+        return res
+          .status(400)
+          .json({ error: "text must be 1000 characters or fewer" });
+      }
+
+      if (!status || !STATUS_VALUES.includes(status)) {
+        return res.status(400).json({
+          error: `status is required and must be one of: ${STATUS_VALUES.join(", ")}`,
+        });
+      }
+
+      function normalizeTags(tags) {
+        if (!Array.isArray(tags)) {
+          return [];
+        }
+
+        return [
+          ...new Set(
+            tags
+              .filter((tag) => typeof tag === "string" && tag.trim() !== "")
+              .map((tag) => tag.trim().toLowerCase().replace(/\s+/g, " ")),
+          ),
+        ];
+      }
+
+      const update = await Update.create({
+        author: req.user.id,
+        text: text.trim(),
+        status,
+        tags: normalizeTags(tags),
+      });
+
+      const populated = await update.populate("author", "displayName email");
+
+      return res.status(201).json({ update: populated });
+    } catch (err) {
+      return res.status(500).json({ error: "Failed to create update" });
+    }
+  },
+);
+
+// POST /api/updates/:id/reactions
+router.post(
+  "/:id/reactions",
+  requireAuth,
+  checkRole("LEAD", "MEMBER"),
+  async (req, res) => {
+    try {
+      const { emoji } = req.body;
+
+      if (!emoji || !emoji.trim()) {
+        return res.status(400).json({ error: "emoji is required" });
+      }
+
+      if (emoji.length > 8) {
+        return res
+          .status(400)
+          .json({ error: "emoji cannot exceed 8 characters" });
+      }
+
+      const update = await Update.findById(req.params.id);
+      if (!update) {
+        return res.status(404).json({ error: "Update not found" });
+      }
+
+      const alreadyReacted = update.reactions.some(
+        (r) => r.user.toString() === req.user.id && r.emoji === emoji,
+      );
+      if (alreadyReacted) {
+        return res
+          .status(409)
+          .json({ error: "You already reacted with that emoji" });
+      }
+
+      update.reactions.push({ emoji, user: req.user.id });
+      await update.save();
+
+      const populated = await update.populate([
+        { path: "author", select: "displayName email" },
+        { path: "reactions.user", select: "displayName email" },
+      ]);
+
+      return res.status(201).json({ update: populated });
+    } catch (err) {
+      return res.status(400).json({ error: "Invalid update id" });
+    }
+  },
+);
+
+// DELETE /api/updates/:id/reactions/:reactionId
+router.delete(
+  "/:id/reactions/:reactionId",
+  requireAuth,
+  checkRole("LEAD", "MEMBER"),
+  async (req, res) => {
+    try {
+      const update = await Update.findById(req.params.id);
+      if (!update) {
+        return res.status(404).json({ error: "Update not found" });
+      }
+
+      const reaction = update.reactions.id(req.params.reactionId);
+      if (!reaction) {
+        return res.status(404).json({ error: "Reaction not found" });
+      }
+
+      if (reaction.user.toString() !== req.user.id) {
+        return res
+          .status(403)
+          .json({ error: "You can only remove your own reactions" });
+      }
+
+      reaction.deleteOne();
+      await update.save();
+
+      const populated = await update.populate([
+        { path: "author", select: "displayName email" },
+        { path: "reactions.user", select: "displayName email" },
+      ]);
+
+      return res.json({ update: populated });
+    } catch (err) {
+      console.error(err);
+      return res.status(400).json({ error: "Invalid update or reaction id" });
+    }
+  },
+);
 
 module.exports = router;
