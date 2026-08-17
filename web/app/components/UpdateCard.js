@@ -208,6 +208,7 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
     .split(" ")
     .map(word => word.slice(0, 1))
     .join("")
+    .slice(0, 2)
     .toUpperCase();
 
     return initials;
