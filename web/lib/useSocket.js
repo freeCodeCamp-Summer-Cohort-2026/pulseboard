@@ -11,22 +11,16 @@ export function useSocket() {
     const newSocket = io(SOCKET_URL, {
       autoConnect: false
     });
+
+    if (!newSocket) console.error("Socket instantiation failed");
+    newSocket.connect();
+
     setSocket(newSocket);
 
-    // //* Listen for events + update client feed
-    // socket.on("POST:update", (update) => {
-    //   //? Add update to client feed
-    //   addUpdate(update);
-    // });
-
-    // //? reactionData: [postId, user, emoji]
-    // socket.on("POST:reaction", (reactionData) => {
-    //   //? Attach reaction to post with given id
-    //   addReaction(reactionData);
-    // });
-
     //* Cleanup
-    return () => socket.disconnect();
+    return () => {
+      newSocket.disconnect();
+    }
   }, []);
 
   return socket;
