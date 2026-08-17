@@ -37,6 +37,10 @@ const updateSchema = new mongoose.Schema(
       type: [reactionSchema],
       default: [],
     },
+    pinned: {
+      type: Boolean,
+      default: false,
+    }
   },
   { timestamps: true },
 );
