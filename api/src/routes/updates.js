@@ -75,7 +75,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
+
 // GET /api/updates/leaderboard?days=7
 router.get("/leaderboard", async (req, res) => {
   try {
@@ -145,7 +145,7 @@ router.get("/leaderboard", async (req, res) => {
   }
 });
 
-=======
+
 // GET /api/updates/export?start=<date>&end=<date>&format=csv|json
 // Exports updates within a date range as JSON or CSV
 router.get("/export", async (req, res) => {
@@ -185,15 +185,15 @@ router.get("/export", async (req, res) => {
         $gte: startDate,
         $lte: endDate,
       },
-    }).populate("author", "displayName");
+    }).populate("author", "displayName email");
 
-    // Format the data for export - ONLY required fields
+    // Format the data for export
     const exportData = updates.map((update) => ({
-      author: update.author?.displayName || "Unknown",
+      author: update.author?.displayName || "Unknown",      
       text: update.text,
       status: update.status,
       createdAt: update.createdAt.toISOString(),
-      reactionCount: update.reactions?.length || 0,
+      reactionCount: update.reactions?.length || 0,      
     }));
 
     // Handle empty results
@@ -204,7 +204,7 @@ router.get("/export", async (req, res) => {
         data: [],
       });
     }
-
+        
     if (format.toLowerCase() === "csv") {
       return exportAsCSV(res, exportData);
     }
@@ -222,15 +222,13 @@ router.get("/export", async (req, res) => {
   }
 });
 
-// Helper function to export data as CSV
-function exportAsCSV(res, data) {
-  // Define CSV headers - ONLY required fields
+function exportAsCSV(res, data) {  
   const headers = [
-    "Author",
+    "Author",    
     "Text",
     "Status",
     "Created At",
-    "Reaction Count",
+    "Reaction Count",    
   ];
 
   // Escape quotes in text fields for CSV compatibility
@@ -239,22 +237,19 @@ function exportAsCSV(res, data) {
     return `"${str.replace(/"/g, '""')}"`;
   };
 
-  // Build CSV rows
-  const rows = data.map((row) => [
-    escapeCSV(row.author),
+    const rows = data.map((row) => [
+    escapeCSV(row.author),    
     escapeCSV(row.text),
     row.status,
     row.createdAt,
-    row.reactionCount,
+    row.reactionCount,    
   ]);
 
-  // Combine headers and rows into CSV content
   const csvContent = [
     headers.join(","),
     ...rows.map((row) => row.join(",")),
   ].join("\n");
 
-  // Set response headers for CSV download
   res.setHeader("Content-Type", "text/csv");
   res.setHeader(
     "Content-Disposition",
@@ -263,7 +258,7 @@ function exportAsCSV(res, data) {
   return res.send(csvContent);
 }
 
->>>>>>> 3cc578f (feat: add CSV export of updates for date range)
+
 // GET /api/updates/:id
 router.get("/:id", async (req, res) => {
   try {
