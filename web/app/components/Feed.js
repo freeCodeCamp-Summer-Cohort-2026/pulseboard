@@ -172,7 +172,24 @@ export default function Feed({ auth, refreshToken }) {
       {error && <p className="error">{error}</p>}
       {loading && <p className="hint">Loading feed...</p>}
       {!loading && updates.length === 0 && (
-        <p className="hint">No updates yet.</p>
+        statusFilter || authorFilter || tagFilter ? (
+          <div>
+            <p className="hint">No updates match your filters.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter("");
+                setAuthorFilter("");
+                setTagFilter("");
+                setShowMyUpdates(false);
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <p className="hint">No updates yet.</p>
+        )
       )}
 
       <div className="update-list">

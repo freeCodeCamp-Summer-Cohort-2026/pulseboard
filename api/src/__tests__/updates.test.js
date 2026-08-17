@@ -1,6 +1,8 @@
 const request = require("supertest");
 const { createApp } = require("../app");
 const User = require("../models/User");
+const Update = require("../models/Update");
+const mongoose = require("mongoose");
 const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
 
 const app = createApp();
@@ -271,7 +273,6 @@ describe("GET /api/updates", () => {
     expect(res.status).toBe(200);
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].tags[0]).toBe("frontend");
-
   });
 
   it("filters by q", async () => {
@@ -332,6 +333,123 @@ describe("GET /api/updates", () => {
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].text).toBe("Meeting with frontend team");
     expect(res.body.updates[0].status).toBe("blocked");
+  });
+});
+
+describe("GET /api/updates/leaderboard", () => {
+  it("returns authors sorted by update count with reaction totals", async () => {
+    const other = await registerUser({
+      email: "other@example.com",
+      displayName: "Other",
+    });
+
+    // Author creates 3 updates.
+    for (let i = 0; i < 3; i++) {
+      await request(app)
+        .post("/api/updates")
+        .set("Authorization", `Bearer ${token}`)
+        .send({
+          text: `Author update ${i}`,
+          status: "on-track",
+        });
+    }
+
+    // Other creates 1 update.
+    const otherUpdate = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${other.token}`)
+      .send({
+        text: "Other update",
+        status: "on-track",
+      });
+
+    const otherUpdateId = otherUpdate.body.update._id;
+
+    // Add two reactions to Other's update.
+    await request(app)
+      .post(`/api/updates/${otherUpdateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ emoji: "👍" });
+
+    await request(app)
+      .post(`/api/updates/${otherUpdateId}/reactions`)
+      .set("Authorization", `Bearer ${other.token}`)
+      .send({ emoji: "🎉" });
+
+    const res = await request(app).get("/api/updates/leaderboard");
+
+    expect(res.status).toBe(200);
+    expect(res.body.leaderboard).toHaveLength(2);
+
+    expect(res.body.leaderboard[0].author.displayName).toBe("Author");
+    expect(res.body.leaderboard[0].updateCount).toBe(3);
+    expect(res.body.leaderboard[0].reactionCount).toBe(0);
+
+    expect(res.body.leaderboard[1].author.displayName).toBe("Other");
+    expect(res.body.leaderboard[1].updateCount).toBe(1);
+    expect(res.body.leaderboard[1].reactionCount).toBe(2);
+  });
+
+  it("returns an empty list when there are no updates in the requested window", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Old update",
+        status: "on-track",
+      });
+
+    const updateId = createRes.body.update._id;
+
+    // Move the update outside the one-day window.
+    await Update.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(updateId) },
+      {
+        $set: {
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        },
+      },
+    );
+
+    const res = await request(app).get("/api/updates/leaderboard?days=1");
+
+    expect(res.status).toBe(200);
+    expect(res.body.leaderboard).toEqual([]);
+  });
+
+  it("includes updates inside the requested window and excludes older updates", async () => {
+    const recentUpdate = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Recent update",
+        status: "on-track",
+      });
+
+    const oldUpdate = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Old update",
+        status: "on-track",
+      });
+
+    await Update.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(oldUpdate.body.update._id) },
+      {
+        $set: {
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        },
+      },
+    );
+
+    const res = await request(app).get("/api/updates/leaderboard?days=1");
+
+    expect(res.status).toBe(200);
+    expect(res.body.leaderboard).toHaveLength(1);
+
+    expect(res.body.leaderboard[0].updateCount).toBe(1);
+    expect(res.body.leaderboard[0].author.displayName).toBe("Author");
   });
 });
 
