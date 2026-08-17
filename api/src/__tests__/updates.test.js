@@ -435,6 +435,77 @@ describe("update visibility", () => {
     expect(idRes.status).toBe(200);
     expect(idRes.body.update.visibility).toBe("leads");
   });
+
+  it("still shows legacy records that predate the visibility field", async () => {
+    // Bypass Mongoose so the inserted document has no visibility field at all, unlike Update.create().
+    await Update.collection.insertOne({
+      author: new mongoose.Types.ObjectId(userId),
+      text: "Legacy update",
+      status: "on-track",
+      tags: [],
+      reactions: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app)
+      .get("/api/updates")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toHaveLength(1);
+    expect(res.body.updates[0].text).toBe("Legacy update");
+  });
+
+  it("returns 404 for a MEMBER adding a reaction to a leads-only update", async () => {
+    const leadToken = await promoteToLead();
+
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({ text: "Leads only", status: "blocked", visibility: "leads" });
+
+    const member = await registerUser({
+      email: "member2@example.com",
+      displayName: "Member Two",
+    });
+
+    const res = await request(app)
+      .post(`/api/updates/${createRes.body.update._id}/reactions`)
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({ emoji: "👍" });
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 404 for a MEMBER removing a reaction from a leads-only update", async () => {
+    const leadToken = await promoteToLead();
+
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({ text: "Leads only", status: "blocked", visibility: "leads" });
+
+    const updateId = createRes.body.update._id;
+
+    const reactRes = await request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({ emoji: "👍" });
+
+    const reactionId = reactRes.body.update.reactions[0]._id;
+
+    const member = await registerUser({
+      email: "member2@example.com",
+      displayName: "Member Two",
+    });
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}/reactions/${reactionId}`)
+      .set("Authorization", `Bearer ${member.token}`);
+
+    expect(res.status).toBe(404);
+  });
 });
 
 describe("GET /api/updates/leaderboard", () => {

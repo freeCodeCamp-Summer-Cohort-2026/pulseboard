@@ -19,6 +19,11 @@ const createUpdateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id,
 });
 
+// Legacy records predate the visibility field, so treat anything but an explicit "leads" as visible.
+function isVisibleToRequester(update, user) {
+  return update.visibility !== "leads" || Boolean(user && user.role === "LEAD");
+}
+
 // GET /api/updates?author=<userId>&status=<on-track|blocked|done>&tag=<free-form-tag>&sort=<newest|oldest|most-reactions>
 router.get("/", optionalAuth, async (req, res) => {
   try {
@@ -26,8 +31,9 @@ router.get("/", optionalAuth, async (req, res) => {
     const filter = {};
 
     // Non-LEAD requesters (members and anonymous) never see leads-only updates.
+    // $ne (rather than equality on "team") also matches legacy records saved before this field existed.
     if (!req.user || req.user.role !== "LEAD") {
-      filter.visibility = "team";
+      filter.visibility = { $ne: "leads" };
     }
 
     if (author) {
@@ -161,10 +167,7 @@ router.get("/:id", optionalAuth, async (req, res) => {
     }
 
     // Hide leads-only updates from non-LEAD requesters without leaking existence.
-    if (
-      update.visibility === "leads" &&
-      (!req.user || req.user.role !== "LEAD")
-    ) {
+    if (!isVisibleToRequester(update, req.user)) {
       return res.status(404).json({ error: "Update not found" });
     }
 
@@ -334,7 +337,7 @@ router.post(
       }
 
       const update = await Update.findById(req.params.id);
-      if (!update) {
+      if (!update || !isVisibleToRequester(update, req.user)) {
         return res.status(404).json({ error: "Update not found" });
       }
 
@@ -370,7 +373,7 @@ router.delete(
   async (req, res) => {
     try {
       const update = await Update.findById(req.params.id);
-      if (!update) {
+      if (!update || !isVisibleToRequester(update, req.user)) {
         return res.status(404).json({ error: "Update not found" });
       }
 
