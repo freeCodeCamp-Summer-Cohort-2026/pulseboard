@@ -37,7 +37,7 @@ export default function Feed({ auth, refreshToken, socket }) {
     return () => {
       socket.off("POST:update", handleRcvdUpdate);
       socket.off("POST:reaction", handleRcvdReaction);
-    }
+    };
   }, [socket]);
 
   useEffect(() => {
@@ -61,7 +61,14 @@ export default function Feed({ auth, refreshToken, socket }) {
     return () => {
       cancelled = true;
     };
-  }, [statusFilter, authorFilter, tagFilter, sortOrder, refreshToken, allUpdates]);
+  }, [
+    statusFilter,
+    authorFilter,
+    tagFilter,
+    sortOrder,
+    refreshToken,
+    allUpdates,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,8 +105,6 @@ export default function Feed({ auth, refreshToken, socket }) {
     return [...new Set(tagsArray)];
   }, [updates]);
 
-
-
   //* Handler for incoming POST:update event on websocket
   function handleRcvdUpdate(update) {
     setAllUpdates((prev) => {
@@ -112,11 +117,13 @@ export default function Feed({ auth, refreshToken, socket }) {
   //* Handler for incoming POST:reaction event on websocket
   //? Reaction isn't duplicated because duplicates are filtered out already in backend logic
   function handleRcvdReaction({ updateId, reaction }) {
-    setAllUpdates((prev) => prev.map(
-      (u) => u._id === updateId
-        ? { ...u, reactions: [...(u.reactions || []), reaction] }
-        : u
-    ));
+    setAllUpdates((prev) =>
+      prev.map((u) =>
+        u._id === updateId
+          ? { ...u, reactions: [...(u.reactions || []), reaction] }
+          : u,
+      ),
+    );
   }
 
   function handleUpdated(updated) {

@@ -19,8 +19,8 @@ async function main() {
   const io = new Server(httpServer, {
     cors: {
       origin: CORS_ORIGIN,
-      methods: ["GET", "POST"]
-    }
+      methods: ["GET", "POST"],
+    },
   });
 
   io.on("connection", (socket) => {

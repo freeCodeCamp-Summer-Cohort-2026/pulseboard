@@ -271,7 +271,6 @@ describe("GET /api/updates", () => {
     expect(res.status).toBe(200);
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].tags[0]).toBe("frontend");
-
   });
 
   it("filters by q", async () => {

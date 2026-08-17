@@ -9,7 +9,7 @@ export function useSocket() {
 
   useEffect(() => {
     const newSocket = io(SOCKET_URL, {
-      autoConnect: false
+      autoConnect: false,
     });
 
     if (!newSocket) console.error("Socket instantiation failed");
@@ -20,7 +20,7 @@ export function useSocket() {
     //* Cleanup
     return () => {
       newSocket.disconnect();
-    }
+    };
   }, []);
 
   return socket;

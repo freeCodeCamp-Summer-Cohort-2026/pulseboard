@@ -4,10 +4,6 @@ const { io: Client } = require("socket.io-client");
 const express = require("express");
 const { createServer } = require("http");
 
-//* UNIT TESTS
-
-
-
 //* INTEGRATION TESTS
 
 describe("Socket.IO event emitting logic", () => {
@@ -47,8 +43,8 @@ describe("Socket.IO event emitting logic", () => {
     httpServer = createServer(app);
     io = new Server(httpServer, {
       cors: {
-        origin: "*"
-      }
+        origin: "*",
+      },
     });
     app.set("io", io);
 
@@ -57,7 +53,7 @@ describe("Socket.IO event emitting logic", () => {
       const PORT = httpServer.address().port;
 
       clientSocket = new Client(`http://localhost:${PORT}`, {
-        transports: ["websocket"]
+        transports: ["websocket"],
       });
       clientSocket.on("connect", done);
     });
@@ -114,5 +110,5 @@ describe("Socket.IO event emitting logic", () => {
             if (err) return done(err);
           });
       });
-  })
+  });
 });
