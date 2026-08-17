@@ -336,6 +336,107 @@ describe("GET /api/updates", () => {
   });
 });
 
+describe("update visibility", () => {
+  async function promoteToLead(email = "author@example.com") {
+    await User.findOneAndUpdate({ email }, { role: "LEAD" });
+    const loginRes = await request(app).post("/api/auth/login").send({
+      email,
+      password: "password123",
+    });
+    return loginRes.body.token;
+  }
+
+  it("defaults visibility to team when omitted", async () => {
+    const res = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "No visibility given", status: "done" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.update.visibility).toBe("team");
+  });
+
+  it("rejects an invalid visibility value", async () => {
+    const res = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Bad visibility", status: "done", visibility: "public" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("hides leads-only updates from a MEMBER in the list", async () => {
+    const leadToken = await promoteToLead();
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({ text: "Leads only", status: "blocked", visibility: "leads" });
+
+    const member = await registerUser({
+      email: "member2@example.com",
+      displayName: "Member Two",
+    });
+
+    const res = await request(app)
+      .get("/api/updates")
+      .set("Authorization", `Bearer ${member.token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toHaveLength(0);
+  });
+
+  it("hides a leads-only update from a MEMBER by direct id lookup", async () => {
+    const leadToken = await promoteToLead();
+
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({ text: "Secret", status: "blocked", visibility: "leads" });
+
+    const updateId = createRes.body.update._id;
+
+    const member = await registerUser({
+      email: "member2@example.com",
+      displayName: "Member Two",
+    });
+
+    const res = await request(app)
+      .get(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${member.token}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("lets a LEAD see leads-only updates in the list and by id", async () => {
+    const leadToken = await promoteToLead();
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({ text: "Team update", status: "on-track", visibility: "team" });
+
+    const leadsRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({ text: "Leads update", status: "blocked", visibility: "leads" });
+
+    const listRes = await request(app)
+      .get("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`);
+
+    expect(listRes.status).toBe(200);
+    expect(listRes.body.updates).toHaveLength(2);
+
+    const idRes = await request(app)
+      .get(`/api/updates/${leadsRes.body.update._id}`)
+      .set("Authorization", `Bearer ${leadToken}`);
+
+    expect(idRes.status).toBe(200);
+    expect(idRes.body.update.visibility).toBe("leads");
+  });
+});
+
 describe("GET /api/updates/leaderboard", () => {
   it("returns authors sorted by update count with reaction totals", async () => {
     const other = await registerUser({

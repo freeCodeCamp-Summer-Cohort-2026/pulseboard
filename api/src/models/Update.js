@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const STATUS_VALUES = ["on-track", "blocked", "done"];
+const VISIBILITY_VALUES = ["team", "leads"];
 
 const reactionSchema = new mongoose.Schema(
   {
@@ -29,6 +30,12 @@ const updateSchema = new mongoose.Schema(
       enum: STATUS_VALUES,
       required: true,
     },
+    visibility: {
+      type: String,
+      enum: VISIBILITY_VALUES,
+      default: "team",
+      required: true,
+    },
     tags: {
       type: [String],
       default: [],
@@ -47,3 +54,4 @@ updateSchema.index({ status: 1 });
 
 module.exports = mongoose.model("Update", updateSchema);
 module.exports.STATUS_VALUES = STATUS_VALUES;
+module.exports.VISIBILITY_VALUES = VISIBILITY_VALUES;

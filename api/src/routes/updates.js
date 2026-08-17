@@ -1,8 +1,8 @@
 const express = require("express");
 const Update = require("../models/Update");
-const { STATUS_VALUES } = require("../models/Update");
+const { STATUS_VALUES, VISIBILITY_VALUES } = require("../models/Update");
 const rateLimit = require("express-rate-limit");
-const { requireAuth, checkRole } = require("../middleware/auth");
+const { requireAuth, optionalAuth, checkRole } = require("../middleware/auth");
 const SORT_VALUES = ["newest", "oldest", "most-reactions"];
 
 const router = express.Router();
@@ -20,10 +20,15 @@ const createUpdateLimiter = rateLimit({
 });
 
 // GET /api/updates?author=<userId>&status=<on-track|blocked|done>&tag=<free-form-tag>&sort=<newest|oldest|most-reactions>
-router.get("/", async (req, res) => {
+router.get("/", optionalAuth, async (req, res) => {
   try {
     const { author, status, tag, sort, q } = req.query;
     const filter = {};
+
+    // Non-LEAD requesters (members and anonymous) never see leads-only updates.
+    if (!req.user || req.user.role !== "LEAD") {
+      filter.visibility = "team";
+    }
 
     if (author) {
       filter.author = author;
@@ -145,13 +150,21 @@ router.get("/leaderboard", async (req, res) => {
 });
 
 // GET /api/updates/:id
-router.get("/:id", async (req, res) => {
+router.get("/:id", optionalAuth, async (req, res) => {
   try {
     const update = await Update.findById(req.params.id)
       .populate("author", "displayName email")
       .populate("reactions.user", "displayName email");
 
     if (!update) {
+      return res.status(404).json({ error: "Update not found" });
+    }
+
+    // Hide leads-only updates from non-LEAD requesters without leaking existence.
+    if (
+      update.visibility === "leads" &&
+      (!req.user || req.user.role !== "LEAD")
+    ) {
       return res.status(404).json({ error: "Update not found" });
     }
 
@@ -244,7 +257,7 @@ router.post(
   checkRole("LEAD", "MEMBER"),
   async (req, res) => {
     try {
-      const { text, status, tags } = req.body;
+      const { text, status, tags, visibility } = req.body;
 
       if (!text || !text.trim()) {
         return res
@@ -261,6 +274,12 @@ router.post(
       if (!status || !STATUS_VALUES.includes(status)) {
         return res.status(400).json({
           error: `status is required and must be one of: ${STATUS_VALUES.join(", ")}`,
+        });
+      }
+
+      if (visibility !== undefined && !VISIBILITY_VALUES.includes(visibility)) {
+        return res.status(400).json({
+          error: `visibility must be one of: ${VISIBILITY_VALUES.join(", ")}`,
         });
       }
 
@@ -282,6 +301,7 @@ router.post(
         author: req.user.id,
         text: text.trim(),
         status,
+        visibility: visibility || "team",
         tags: normalizeTags(tags),
       });
 
