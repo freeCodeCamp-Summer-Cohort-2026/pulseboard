@@ -76,4 +76,79 @@ describe("AuthPanel - Password Confirmation", () => {
       });
     });
   });
+
+   test("toggles password visibility", () => {
+    render(
+      <AuthPanel
+        auth={null}
+        onSignIn={() => {}}
+        onSignOut={() => {}}
+      />
+    );
+
+    const passwordInput = screen.getByPlaceholderText("Password");
+
+    const toggleButton = screen.getByRole("button", {
+      name: "Show password",
+    });
+
+    expect(passwordInput).toHaveAttribute("type", "password");
+
+    fireEvent.click(toggleButton);
+
+    expect(passwordInput).toHaveAttribute("type", "text");
+
+    expect(
+      screen.getByRole("button", {
+        name: "Hide password",
+      })
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Hide password",
+      })
+    );
+
+    expect(passwordInput).toHaveAttribute("type", "password");
+  });
+
+  test("toggles confirm password visibility independently", () => {
+    render(
+      <AuthPanel
+        auth={null}
+        onSignIn={() => {}}
+        onSignOut={() => {}}
+      />
+    );
+
+    fireEvent.click(screen.getByText("Register"));
+
+    const passwordInput = screen.getByPlaceholderText("Password");
+    const confirmPasswordInput =
+      screen.getByPlaceholderText("Confirm password");
+
+    const passwordToggle = screen.getByRole("button", {
+      name: "Show password",
+    });
+
+    const confirmPasswordToggle = screen.getByRole("button", {
+      name: "Show confirm password",
+    });
+
+    expect(passwordInput).toHaveAttribute("type", "password");
+    expect(confirmPasswordInput).toHaveAttribute("type", "password");
+
+    fireEvent.click(passwordToggle);
+
+    expect(passwordInput).toHaveAttribute("type", "text");
+
+    // Confirm password should remain hidden
+    expect(confirmPasswordInput).toHaveAttribute("type", "password");
+
+    fireEvent.click(confirmPasswordToggle);
+
+    expect(confirmPasswordInput).toHaveAttribute("type", "text");
+  });
+
 });

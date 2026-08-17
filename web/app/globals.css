@@ -98,9 +98,9 @@ section {
 
 .auth-panel {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.5rem;
-  align-items: center;
+  align-items: stretch;
   background: var(--surface-bg);
   border: 1px solid var(--surface-border);
   border-radius: 8px;
@@ -162,6 +162,14 @@ section {
 .update-form textarea::placeholder {
   color: var(--placeholder-text);
 }
+
+.password-field {
+  display: flex;
+  flex: 1;
+  min-width: 220px;
+  gap: 0.5rem;
+}
+
 
 .tags-input-container {
   display: flex;
