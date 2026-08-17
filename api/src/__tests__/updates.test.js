@@ -26,7 +26,7 @@ async function registerUser(overrides = {}) {
   if ("role" in overrides) {
     throw new Error(
       "registerUser() must not pass role through the public endpoint; " +
-        "promote the user via User.findOneAndUpdate in test setup instead.",
+      "promote the user via User.findOneAndUpdate in test setup instead.",
     );
   }
   const res = await request(app)
@@ -481,6 +481,22 @@ describe("DELETE /api/updates/:id", () => {
     const res = await request(app)
       .delete(`/api/updates/${updateId}`)
       .set("Authorization", `Bearer ${leadToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toBe(updateId);
+  });
+
+  it("allows the original author to delete their own update", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Protected update", status: "on-track" });
+
+    const updateId = createRes.body.update._id;
+
+    const res = await request(app)
+      .delete(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${token}`);
 
     expect(res.status).toBe(200);
     expect(res.body).toBe(updateId);

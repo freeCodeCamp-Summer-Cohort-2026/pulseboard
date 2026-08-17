@@ -222,13 +222,21 @@ router.patch("/:id", requireAuth, async (req, res) => {
   }
 });
 
-router.delete("/:id", requireAuth, checkRole("LEAD"), async (req, res) => {
+router.delete("/:id", requireAuth, checkRole("LEAD", "MEMBER"), async (req, res) => {
   try {
-    const result = await Update.findByIdAndDelete(req.params.id);
+    const update = await Update.findById(req.params.id);
 
-    if (!result) {
+    if (!update) {
       return res.status(404).json({ error: "Update not found" });
     }
+
+    if (update.author.toString() !== req.user.id && req.user.role !== "LEAD") {
+      return res.status(403).json({
+        error: "Access Denied",
+      });
+    }
+
+    await Update.findByIdAndDelete(req.params.id);
 
     return res.status(200).json(req.params.id);
   } catch (err) {
