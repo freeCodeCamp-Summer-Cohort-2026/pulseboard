@@ -198,15 +198,15 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   }
 
   function getAuthorInitials(update) {
-    const authorName = update.author.displayName;
+    const authorName = update.author?.displayName;
 
     if (!authorName) {
-      return "U"; // U is for Unknown
+      return "U" // U is for Unknown
     }
 
     const initials = authorName
     .split(" ")
-    .map(word => word.slice(0))
+    .map(word => word.slice(0, 1))
     .join("")
     .toUpperCase();
 
@@ -237,6 +237,9 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
             <time dateTime={update.createdAt}>
               {formatRelativeTime(update.createdAt)}
             </time>
+          </div>
+          <div className="initials-badge">
+            {getAuthorInitials(update)}
           </div>
         </div>
         {isEditing ? (
