@@ -61,7 +61,7 @@ export default function Feed({ auth, refreshToken, socket }) {
     return () => {
       cancelled = true;
     };
-  }, [statusFilter, authorFilter, tagFilter, sortOrder, refreshToken]);
+  }, [statusFilter, authorFilter, tagFilter, sortOrder, refreshToken, allUpdates]);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,9 +98,11 @@ export default function Feed({ auth, refreshToken, socket }) {
     return [...new Set(tagsArray)];
   }, [updates]);
 
+
+
   //* Handler for incoming POST:update event on websocket
   function handleRcvdUpdate(update) {
-    setUpdates((prev) => {
+    setAllUpdates((prev) => {
       //? If update already exists because current user posted it, then don't handle websocket response
       if (prev.some((u) => u._id === update._id)) return prev;
       return [update, ...prev];
@@ -110,7 +112,7 @@ export default function Feed({ auth, refreshToken, socket }) {
   //* Handler for incoming POST:reaction event on websocket
   //? Reaction isn't duplicated because duplicates are filtered out already in backend logic
   function handleRcvdReaction({ updateId, reaction }) {
-    setUpdates((prev) => prev.map(
+    setAllUpdates((prev) => prev.map(
       (u) => u._id === updateId
         ? { ...u, reactions: [...(u.reactions || []), reaction] }
         : u
