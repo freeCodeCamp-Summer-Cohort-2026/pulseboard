@@ -6,7 +6,7 @@ import UpdateCard from "./UpdateCard";
 
 const STATUS_OPTIONS = ["on-track", "blocked", "done"];
 
-export default function Feed({ auth, refreshToken }) {
+export default function Feed({ auth, refreshToken, socket }) {
   const [updates, setUpdates] = useState([]);
   const [allUpdates, setAllUpdates] = useState([]);
 
@@ -42,6 +42,19 @@ export default function Feed({ auth, refreshToken }) {
   }, []);
 
   // Load the current feed
+  //* Attach and detach event handlers for websocket (if initialized)
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("POST:update", handleRcvdUpdate);
+    socket.on("POST:reaction", handleRcvdReaction);
+
+    return () => {
+      socket.off("POST:update", handleRcvdUpdate);
+      socket.off("POST:reaction", handleRcvdReaction);
+    };
+  }, [socket]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -176,6 +189,27 @@ export default function Feed({ auth, refreshToken }) {
 
     return [...new Set(tagsArray)];
   }, [allUpdates]);
+
+  //* Handler for incoming POST:update event on websocket
+  function handleRcvdUpdate(update) {
+    setAllUpdates((prev) => {
+      //? If update already exists because current user posted it, then don't handle websocket response
+      if (prev.some((u) => u._id === update._id)) return prev;
+      return [update, ...prev];
+    });
+  }
+
+  //* Handler for incoming POST:reaction event on websocket
+  //? Reaction isn't duplicated because duplicates are filtered out already in backend logic
+  function handleRcvdReaction({ updateId, reaction }) {
+    setAllUpdates((prev) =>
+      prev.map((u) =>
+        u._id === updateId
+          ? { ...u, reactions: [...(u.reactions || []), reaction] }
+          : u,
+      ),
+    );
+  }
 
   function handleUpdated(updated) {
     setUpdates((prev) =>
