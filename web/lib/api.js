@@ -59,7 +59,6 @@ export function resetPassword({ token, newPassword }) {
   });
 }
 
-export function listUpdates({ author, status, tag, sort } = {}) {
 export function listUpdates({
   author,
   status,
@@ -68,7 +67,6 @@ export function listUpdates({
   page = 1,
   limit = 10,
 } = {}) {
-
   const params = new URLSearchParams();
 
   if (author) params.set("author", author);
