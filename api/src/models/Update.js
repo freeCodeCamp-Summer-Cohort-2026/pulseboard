@@ -44,6 +44,10 @@ const updateSchema = new mongoose.Schema(
       type: [reactionSchema],
       default: [],
     },
+    editedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true },
 );

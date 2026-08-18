@@ -147,6 +147,23 @@ The data model is intentionally shallow: a `User` has an email, display name,
 and password hash. An `Update` has an author, text body, status, and an
 embedded array of reactions (emoji + reacting user).
 
+## Real-time Updates
+
+**Socket.IO** is used to push new updates and reactions to connected clients in real-time.
+
+### Client
+- The frontend connects to the Socket.IO server using the URL stored in `NEXT_PUBLIC_API_URL` because it runs alongside the existing Express API (defaults to `http://localhost:4000`).
+- On receiving an event, the feed updates in real-time without a manual refresh
+
+### Server
+- Socket.IO runs on the same HTTP server as the Express API (default port `4000`).
+- Events emitted:
+  - `POST:update` - when a user creates a new update
+  - `POST:reaction` - when a user adds a reaction to an update
+
+### Environment variables
+- `CORS_ORIGIN` - allowed origin for CORS (default is `http://localhost:3000`).
+
 ## Testing
 
 ```bash
