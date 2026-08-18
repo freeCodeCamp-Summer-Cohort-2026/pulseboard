@@ -236,3 +236,25 @@ describe("UpdateForm saving submissions", () => {
     );
   });
 });
+
+describe("keyboard shortcut", ()=>{
+  it("submits when ctrl + enter is pressed", async ()=>{
+    createUpdate.mockResolvedValue({
+      update:{ id: '1', text: 'Quick-update', status: 'on-track'},
+    });
+
+    const onPosted= jest.fn();
+
+    render(<UpdateForm auth={auth} onPosted={onPosted} />);
+
+    const textarea= screen.getByPlaceholderText(/What's your status today/i);
+
+    fireEvent.change(textarea, {target: {value: "Quick-update"}});
+
+    fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
+
+    await waitFor(()=>expect(onPosted).toHaveBeenCalled())
+
+  })
+
+})

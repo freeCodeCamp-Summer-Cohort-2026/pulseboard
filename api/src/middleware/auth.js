@@ -19,6 +19,23 @@ function requireAuth(req, res, next) {
   }
 }
 
+// Attaches req.user when a valid token is present, but never rejects the request.
+function optionalAuth(req, res, next) {
+  const header = req.headers.authorization || "";
+  const [scheme, token] = header.split(" ");
+
+  if (scheme === "Bearer" && token) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = { id: payload.sub, email: payload.email, role: payload.role };
+    } catch (err) {
+      // Ignore invalid tokens and continue as an anonymous requester.
+    }
+  }
+
+  return next();
+}
+
 const checkRole = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
@@ -35,4 +52,4 @@ const checkRole = (...allowedRoles) => {
   };
 };
 
-module.exports = { requireAuth, checkRole };
+module.exports = { requireAuth, optionalAuth, checkRole };
