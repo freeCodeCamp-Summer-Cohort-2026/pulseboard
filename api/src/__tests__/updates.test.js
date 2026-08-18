@@ -143,6 +143,46 @@ describe("POST /api/updates", () => {
     expect(res.body.update.tags).toStrictEqual([]);
     expect(res.body.update.author._id).toBe(userId);
   });
+
+  it("sends 400 error when tags for an update exceed maximum limit", async () => {
+    const res = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Shipped the login page",
+        status: "done",
+        tags: [
+          "frontend",
+          "ui",
+          "backend",
+          "api",
+          "design",
+          "test",
+          "react",
+          "node",
+          "ci cd",
+          "docker",
+          "documentation",
+        ],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe(`Maximum 10 tags are allowed.`);
+  });
+
+  it("sends 400 error when a tag exceeds maximum allowed character length limit", async () => {
+    const res = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Shipped the login page",
+        status: "done",
+        tags: ["frontend", "ui", "production ready microservice architecture"],
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe(`Maximum 30 characters are allowed for a tag.`);
+  });
 });
 
 describe("GET /api/updates", () => {
