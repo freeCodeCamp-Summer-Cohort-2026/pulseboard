@@ -94,6 +94,34 @@ describe("UpdateCard", () => {
     expect(screen.getByText("Done")).toBeInTheDocument();
   });
 
+  it("renders the initials badge for a one word author name", () => {
+    render(<UpdateCard update={ {...update, author: { ...update.author, displayName: "Amina"} }} auth={null} onUpdated={() => {}}/>);
+
+    expect(screen.getByText("A")).toBeInTheDocument();
+  });
+
+  it("renders the initials badge for a multi-word author name", () => {
+    render(<UpdateCard update={ {...update, author: { ...update.author, displayName: "Amina Fatima Yusuf"} }} auth={null} onUpdated={() => {}}/>);
+
+    expect(screen.getByText("AF")).toBeInTheDocument();
+  });
+
+  it("renders script tags in update text as literal text", () => {
+    const maliciousText = "<script>window.__xss=true</script>";
+
+    render(
+      <UpdateCard
+        update={{ ...update, text: maliciousText }}
+        auth={null}
+        onUpdated={() => {}}
+      />,
+    );
+
+    expect(screen.getByText(maliciousText)).toBeInTheDocument();
+    expect(document.querySelector("script")).not.toBeInTheDocument();
+    expect(window.__xss).not.toBe(true);
+  });
+
   it("renders a mention as a styled span", () => {
     render(
       <UpdateCard

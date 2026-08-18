@@ -60,12 +60,26 @@ export function resetPassword({ token, newPassword }) {
 }
 
 export function listUpdates({ author, status, tag, sort } = {}) {
+export function listUpdates({
+  author,
+  status,
+  tag,
+  sort,
+  page = 1,
+  limit = 10,
+} = {}) {
+
   const params = new URLSearchParams();
+
   if (author) params.set("author", author);
   if (status) params.set("status", status);
   if (tag) params.set("tag", tag);
   if (sort) params.set("sort", sort);
+  if (page) params.set("page", page);
+  if (limit) params.set("limit", limit);
+
   const query = params.toString() ? `?${params.toString()}` : "";
+
   return request(`/api/updates${query}`);
 }
 
