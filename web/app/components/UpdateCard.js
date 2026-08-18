@@ -152,7 +152,11 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
     setError(null);
 
     const deleteId = update._id;
-
+    
+    const confirmDelete = window.confirm("Proceed to delete?")
+    if(!confirmDelete){
+      return
+    }
     try {
       const deletedId = await deleteUpdate(deleteId, auth.token);
       if (!deletedId) {

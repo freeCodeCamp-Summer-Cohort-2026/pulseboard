@@ -1,11 +1,12 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import UpdateCard, { formatRelativeTime, groupReactions } from "../UpdateCard";
-import { addReaction, removeReaction, editUpdate } from "@/lib/api";
+import { addReaction, removeReaction, editUpdate,deleteUpdate } from "@/lib/api";
 
 jest.mock("@/lib/api", () => ({
   addReaction: jest.fn(),
   removeReaction: jest.fn(),
   editUpdate: jest.fn(),
+  deleteUpdate:jest.fn(),
 }));
 
 describe("formatRelativeTime", () => {
@@ -405,4 +406,36 @@ describe("UpdateCard", () => {
 
     expect(onUpdated).not.toHaveBeenCalled();
   });
+   it("does not delete the update when the confirmation is cancelled", () => {
+    window.confirm = jest.fn().mockReturnValue(false);
+    render(
+  <UpdateCard
+    update={update}
+    auth={{ ...auth, user: { ...auth.user, role: "LEAD" } }}
+    onUpdated={() => {}}
+    onDeleted={() => {}}
+  />,
+);
+   const deleteButton = screen.getByRole("button", { name: "Delete" });
+   fireEvent.click(deleteButton);
+   expect(deleteUpdate).not.toHaveBeenCalled();
+   }
+  )
+
+    it("deletes the update when the confirmation is true", async() =>{
+   window.confirm = jest.fn().mockReturnValue(true);
+   render(
+    <UpdateCard
+     update={update}
+    auth={{ ...auth, user: { ...auth.user, role: "LEAD" } }}
+    onUpdated={() => {}}
+    onDeleted={() => {}}
+    />
+   )
+    const deleteButton = screen.getByRole("button", {name:"Delete"});
+    fireEvent.click(deleteButton);
+    await waitFor(() => { expect (deleteUpdate).toHaveBeenCalled()})
+  
+    })
 });
+
