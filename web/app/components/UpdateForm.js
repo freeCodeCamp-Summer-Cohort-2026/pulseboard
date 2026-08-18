@@ -154,21 +154,27 @@ export default function UpdateForm({ auth, onPosted }) {
         disabled={isPosting}
       />
       <label>{charCount}/1000</label>
+      <label className="sr-only" htmlFor="tag-input">
+        Tags
+      </label>
       <div className="tags-input-container">
         {tags?.map((tag) => {
           return (
             <div className="tags-pill" key={tag}>
               <span className="tag-name">{tag}</span>
-              <span
+              <button
+                type="button"
                 className="remove-tag"
-                onClick={(e) => setTags(tags.filter((t) => t !== tag))}
+                aria-label={`Remove tag ${tag}`}
+                onClick={() => setTags(tags.filter((t) => t !== tag))}
               >
                 &times;
-              </span>
+              </button>
             </div>
           );
         })}
         <input
+          id="tag-input"
           type="text"
           className="tag-input"
           placeholder="Type a tag and press Enter"

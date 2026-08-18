@@ -258,3 +258,54 @@ describe("keyboard shortcut", ()=>{
   })
 
 })
+describe("UpdateForm tag input accessibility", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
+
+  it("labels the tag input rather than relying on the placeholder", () => {
+    render(<UpdateForm auth={auth} />);
+
+    // getByLabelText only resolves through a real accessible name, so this
+    // fails if the <label>/htmlFor association is dropped.
+    expect(screen.getByLabelText("Tags")).toBe(
+      document.querySelector("#tag-input"),
+    );
+  });
+
+  it("lets a keyboard user add and then remove a tag", () => {
+    render(<UpdateForm auth={auth} />);
+
+    const tagInput = screen.getByLabelText("Tags");
+    fireEvent.change(tagInput, { target: { value: "release" } });
+    fireEvent.keyDown(tagInput, { key: "Enter", code: "Enter" });
+
+    expect(screen.getByText("release")).toBeInTheDocument();
+
+    // The remove control must be a real button, reachable by name and
+    // operable without a mouse.
+    const removeButton = screen.getByRole("button", { name: "Remove tag release" });
+    expect(removeButton).toHaveAttribute("type", "button");
+
+    removeButton.focus();
+    expect(removeButton).toHaveFocus();
+
+    fireEvent.click(removeButton);
+    expect(screen.queryByText("release")).not.toBeInTheDocument();
+  });
+
+  it("does not submit the form when a tag is removed", async () => {
+    render(<UpdateForm auth={auth} />);
+
+    const tagInput = screen.getByLabelText("Tags");
+    fireEvent.change(tagInput, { target: { value: "release" } });
+    fireEvent.keyDown(tagInput, { key: "Enter", code: "Enter" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove tag release" }));
+
+    // A <button> inside a <form> defaults to type="submit"; without the
+    // explicit type this click would post an update.
+    await waitFor(() => expect(createUpdate).not.toHaveBeenCalled());
+  });
+});
