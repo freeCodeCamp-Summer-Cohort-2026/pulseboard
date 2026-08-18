@@ -5,12 +5,14 @@ import { useAuth } from "@/lib/useAuth";
 import AuthPanel from "./components/AuthPanel";
 import UpdateForm from "./components/UpdateForm";
 import Feed from "./components/Feed";
+import { useSocket } from "@/lib/useSocket";
 
 const THEME_STORAGE_KEY = "pulseboard.theme";
 
 export default function HomePage() {
   const { auth, ready, signIn, signOut } = useAuth();
   const [refreshToken, setRefreshToken] = useState(0);
+  const socket = useSocket();
   const [theme, setTheme] = useState("light");
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function HomePage() {
 
       <section>
         <h2>Feed</h2>
-        <Feed auth={auth} refreshToken={refreshToken} />
+        <Feed auth={auth} refreshToken={refreshToken} socket={socket} />
       </section>
     </main>
   );
