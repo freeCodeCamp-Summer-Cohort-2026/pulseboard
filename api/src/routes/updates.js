@@ -425,7 +425,7 @@ router.post(
           };
         }
 
-        if (tags.some((tag) => tag.length > maxTagLength)) {
+        if (tags.some((tag) => typeof tag !== "string" || tag.length > maxTagLength)) {
           return {
             error: `Maximum ${maxTagLength} characters are allowed for a tag.`,
           };
