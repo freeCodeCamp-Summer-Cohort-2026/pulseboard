@@ -27,7 +27,13 @@ function isVisibleToRequester(update, user) {
 // GET /api/updates?author=<userId>&status=<on-track|blocked|done>&tag=<free-form-tag>&sort=<newest|oldest|most-reactions>
 router.get("/", optionalAuth, async (req, res) => {
   try {
-    const { author, status, tag, sort, q } = req.query;
+const { author, status, tag, sort, q } = req.query;
+
+const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+const limit = Math.min(
+  Math.max(parseInt(req.query.limit, 10) || 10, 1),
+  50
+);
     const filter = {};
 
     // Non-LEAD requesters (members and anonymous) never see leads-only updates.
@@ -53,6 +59,12 @@ router.get("/", optionalAuth, async (req, res) => {
       filter.tags = tag;
     }
 
+    if (q && q.trim()) {
+      filter.text = {
+        $regex: q.trim(),
+        $options: "i",
+      };
+    }
     if (sort) {
       if (!SORT_VALUES.includes(sort)) {
         return res.status(400).json({
@@ -62,25 +74,50 @@ router.get("/", optionalAuth, async (req, res) => {
     }
 
     const sortDirection = sort === "oldest" ? 1 : -1;
-    const updates = await Update.find(filter)
-      .sort({ createdAt: sortDirection })
-      .populate("author", "displayName email")
-      .populate("reactions.user", "displayName email");
 
-    let filterUpdates = updates;
+let updates;
 
-    if (q) {
-      const searchString = q.trim().toLowerCase();
-      filterUpdates = updates.filter((update) => {
-        return update.text.toLowerCase().includes(searchString);
-      });
-    }
+if (sort === "most-reactions") {
+  updates = await Update.aggregate([
+    { $match: filter },
+    {
+      $addFields: {
+        reactionCount: { $size: "$reactions" },
+      },
+    },
+    {
+      $sort: {
+        reactionCount: -1,
+        createdAt: -1,
+      },
+    },
+    { $skip: (page - 1) * limit },
+    { $limit: limit },
+  ]);
 
-    if (sort === "most-reactions") {
-      filterUpdates.sort((a, b) => b.reactions.length - a.reactions.length);
-    }
+  await Update.populate(updates, [
+    { path: "author", select: "displayName email" },
+    { path: "reactions.user", select: "displayName email" },
+  ]);
+} else {
+  updates = await Update.find(filter)
+    .sort({ createdAt: sortDirection })
+    .skip((page - 1) * limit)
+    .limit(limit)
+    .populate("author", "displayName email")
+    .populate("reactions.user", "displayName email");
+}
+    const total = await Update.countDocuments(filter);
+    const hasNextPage = page * limit<total;
+    return res.json({
+      updates,
+      pagination:{
+        page,
+        limit,
+        hasNextPage,
+      },
+    });
 
-    return res.json({ updates: filterUpdates });
   } catch (err) {
     return res.status(500).json({ error: "Failed to fetch updates" });
   }
@@ -416,6 +453,21 @@ router.post(
           return [];
         }
 
+        const maxTags = 10;
+        const maxTagLength = 30;
+
+        if (tags.length > maxTags) {
+          return {
+            error: `Maximum ${maxTags} tags are allowed.`,
+          };
+        }
+
+        if (tags.some((tag) => typeof tag !== "string" || tag.length > maxTagLength)) {
+          return {
+            error: `Maximum ${maxTagLength} characters are allowed for a tag.`,
+          };
+        }
+
         return [
           ...new Set(
             tags
@@ -425,12 +477,18 @@ router.post(
         ];
       }
 
+      const validatedTags = normalizeTags(tags);
+
+      if (validatedTags?.error) {
+        return res.status(400).json({ error: validatedTags.error });
+      }
+
       const update = await Update.create({
         author: req.user.id,
         text: text.trim(),
         status,
         visibility: visibility || "team",
-        tags: normalizeTags(tags),
+        tags: validatedTags,
       });
 
       const populated = await update.populate([
