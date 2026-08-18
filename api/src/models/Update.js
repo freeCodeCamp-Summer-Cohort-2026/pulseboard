@@ -40,7 +40,7 @@ const updateSchema = new mongoose.Schema(
     pinned: {
       type: Boolean,
       default: false,
-    }
+    },
   },
   { timestamps: true },
 );
