@@ -1,7 +1,8 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-
+const PasswordReset = require("../models/Password_Reset");
+const crypto = require("node:crypto");
 const router = express.Router();
 
 function signToken(user) {
@@ -79,5 +80,78 @@ router.post("/login", async (req, res) => {
     return res.status(500).json({ error: "Failed to log in" });
   }
 });
+
+//POST api/auth/forgot-password
+
+router.post("/forgot-password", async (req,res) => {
+  try {
+    const { email } = req.body;
+    if(!email) {
+      return res.status(400).json({ error: "email is required" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+    await PasswordReset.deleteMany({ userId: user._id });
+
+    const rawToken = crypto.randomBytes(32).toString("hex");
+    const generatedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const expiresIn = Date.now() + 10 * 1000 * 60;
+
+    await PasswordReset.create({
+      userId: user._id,
+      tokenHash: generatedToken,
+      expiresIn
+    });
+
+    return res.status(201).json({ message: "Password reset token has been generated", devResetToken: process.env.NODE_ENV !== "production" ? rawToken : undefined });
+  } catch(err) {
+    return res.status(500).json( {error: "Failed to generate reset-token"} );
+  }
+});
+
+//POST api/auth/reset-password
+
+router.post("/reset-password", async (req,res) => {
+  try {
+    const { token, newPassword } = req.body;
+    if(!token || !newPassword){
+      return res.status(400).json({ message: "Token and new password are required" });
+    }
+  
+    if(newPassword.length < 8){
+      return res.status(400).json({ error: "password must be at least 8 characters long" });
+    }
+    
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const changeRequest = await PasswordReset.findOne({ tokenHash,expiresIn:{ $gt: new Date() } });
+  
+    if(!changeRequest){
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+  
+    const user = await User.findById(changeRequest.userId);
+  
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid or expired reset token.",
+      });
+    }
+  
+    user.passwordHash = await User.hashPassword(newPassword);
+    await user.save();
+  
+    // Token can never be used again.
+    await PasswordReset.deleteOne({
+      _id: changeRequest._id,
+    });
+  
+    return res.status(200).json({
+      message: "Password reset successfully.",
+    });
+  } catch (err) {
+    return res.status(500).json( {error: "Failed to reset password"} );
+  }
+})
 
 module.exports = router;

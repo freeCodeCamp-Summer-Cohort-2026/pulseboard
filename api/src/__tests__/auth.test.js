@@ -122,3 +122,154 @@ describe("POST /api/auth/login", () => {
     expect(res.status).toBe(401);
   });
 });
+
+describe("POST /api/auth/forgot-password", () => {
+  beforeEach(async () => {
+    await request(app).post("/api/auth/register").send({
+      email: "resetuser@example.com",
+      password: "password123",
+      displayName: "Reset User",
+    });
+  });
+
+  it("generates a reset token for an existing user", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "resetuser@example.com" });
+
+    expect(res.status).toBe(201);
+    expect(res.body.message).toBe("Password reset token has been generated");
+    expect(res.body.devResetToken).toBeDefined();
+  });
+
+  it("rejects request without email", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({});
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("email is required");
+  });
+
+  it("replaces existing reset token if a second request is made", async () => {
+    const firstRes = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "resetuser@example.com" });
+
+    const secondRes = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "resetuser@example.com" });
+
+    expect(secondRes.status).toBe(201);
+    expect(secondRes.body.devResetToken).not.toBe(firstRes.body.devResetToken);
+
+    // Old token should be invalidated
+    const resetAttempt = await request(app)
+      .post("/api/auth/reset-password")
+      .send({
+        token: firstRes.body.devResetToken,
+        newPassword: "newpassword123",
+      });
+
+    expect(resetAttempt.status).toBe(400);
+    expect(resetAttempt.body.message).toBe("Invalid or expired token");
+  });
+});
+
+describe("POST /api/auth/reset-password", () => {
+  let validToken;
+
+  beforeEach(async () => {
+    await request(app).post("/api/auth/register").send({
+      email: "target@example.com",
+      password: "oldpassword123",
+      displayName: "Target User",
+    });
+
+    const forgotRes = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "target@example.com" });
+
+    validToken = forgotRes.body.devResetToken;
+  });
+
+  it("successfully resets the password and allows login with new credentials", async () => {
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({
+        token: validToken,
+        newPassword: "newpassword123",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Password reset successfully.");
+
+    // Verify old password fails
+    const failedLogin = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "target@example.com", password: "oldpassword123" });
+    expect(failedLogin.status).toBe(401);
+
+    // Verify new password succeeds
+    const successLogin = await request(app)
+      .post("/api/auth/login")
+      .send({ email: "target@example.com", password: "newpassword123" });
+    expect(successLogin.status).toBe(200);
+    expect(successLogin.body.token).toBeDefined();
+  });
+
+  it("rejects missing token or newPassword", async () => {
+    const resNoToken = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ newPassword: "newpassword123" });
+    expect(resNoToken.status).toBe(400);
+
+    const resNoPass = await request(app)
+      .post("/api/auth/reset-password")
+      .send({ token: validToken });
+    expect(resNoPass.status).toBe(400);
+  });
+
+  it("rejects password shorter than 8 characters", async () => {
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({
+        token: validToken,
+        newPassword: "short",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("password must be at least 8 characters long");
+  });
+
+  it("rejects an invalid token", async () => {
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({
+        token: "invalidtokenstring123456",
+        newPassword: "newpassword123",
+      });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid or expired token");
+  });
+
+  it("prevents token reuse after a successful reset", async () => {
+    await request(app)
+      .post("/api/auth/reset-password")
+      .send({
+        token: validToken,
+        newPassword: "newpassword123",
+      });
+
+    const retryRes = await request(app)
+      .post("/api/auth/reset-password")
+      .send({
+        token: validToken,
+        newPassword: "anotherpassword123",
+      });
+
+    expect(retryRes.status).toBe(400);
+    expect(retryRes.body.message).toBe("Invalid or expired token");
+  });
+});

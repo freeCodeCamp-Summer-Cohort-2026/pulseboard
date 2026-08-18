@@ -45,6 +45,20 @@ export function login({ email, password }) {
   });
 }
 
+export function forgotPassword({ email }) {
+  return request("/api/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export function resetPassword({ token, newPassword }) {
+  return request("/api/auth/reset-password", {
+    method: "POST",
+    body: { token, newPassword },
+  });
+}
+
 export function listUpdates({ author, status, tag, sort } = {}) {
   const params = new URLSearchParams();
   if (author) params.set("author", author);
