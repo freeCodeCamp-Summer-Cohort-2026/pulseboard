@@ -817,3 +817,131 @@ describe("PATCH /api/updates/:id", () => {
     expect(res.body.error).toBe("text is required and cannot be empty");
   });
 });
+
+describe("PATCH /api/updates/:id/pin", () => {
+  it("returns 403 when a MEMBER tries to pin an update", async () => {
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Protected update", status: "on-track" });
+
+    const updateId = createRes.body.update._id;
+
+    const member = await registerUser({
+      email: "member@example.com",
+      displayName: "Member",
+    });
+
+    const res = await request(app)
+      .patch(`/api/updates/${updateId}/pin`)
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({
+        pinned: true,
+      });
+
+    expect(res.status).toBe(403);
+    expect(res.body.message || res.body.error).toMatch(/Access Denied/i);
+  });
+
+  it("allowing lead pinning and unpinning an update", async () => {
+    await User.findOneAndUpdate(
+      { email: "author@example.com" },
+      { role: "LEAD" },
+    );
+
+    const LeadLoginRes = await request(app).post("/api/auth/login").send({
+      email: "author@example.com",
+      password: "password123",
+    });
+
+    const leadToken = LeadLoginRes.body.token;
+
+    const member = await registerUser({
+      email: "member@example.com",
+      displayName: "Member",
+    });
+
+    const memberCreateRes = await request(app)
+      .post("/api/updates/")
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({text: "Protected Update", status: "on-track"});
+
+    const updateId = memberCreateRes.body.update._id;
+
+    // Lead pinning an update
+    const resPin = await request(app)
+      .patch(`/api/updates/${updateId}/pin`)
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({
+        pinned: true,
+      });
+
+    expect(resPin.status).toBe(200);
+    expect(resPin.body.update._id).toBe(updateId);
+    expect(resPin.body.update.pinned).toBe(true);
+    expect(resPin.body.update.author._id).toBe(member.user._id);
+    
+    // Lead unpinning an update
+    const resUnpin = await request(app)
+    .patch(`/api/updates/${updateId}/pin`)
+    .set("Authorization", `Bearer ${leadToken}`)
+    .send({
+      pinned: false,
+    });
+    
+    expect(resUnpin.status).toBe(200);
+    expect(resUnpin.body.update._id).toBe(updateId);
+    expect(resUnpin.body.update.pinned).toBe(false);
+    expect(resUnpin.body.update.author._id).toBe(member.user._id);
+
+
+  });
+
+  it("tests the pinned update was always on the top", async() => {
+    await User.findOneAndUpdate(
+      { email: "author@example.com" },
+      { role: "LEAD" },
+    );
+
+    const LeadLoginRes = await request(app).post("/api/auth/login").send({
+      email: "author@example.com",
+      password: "password123",
+    });
+
+    const leadToken = LeadLoginRes.body.token;
+
+    const member = await registerUser({
+      email: "member@example.com",
+      displayName: "Member",
+    });
+
+    const memberCreateRes1 = await request(app)
+      .post("/api/updates/")
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({ text: "First Update", status: "on-track" });
+      
+    const firstUpdateId = memberCreateRes1.body.update._id;
+
+    const memberCreateRes2 = await request(app)
+      .post("/api/updates/")
+      .set("Authorization", `Bearer ${member.token}`)
+      .send({ text: "Second Update", status: "on-track" });
+
+    const secondUpdateId = memberCreateRes2.body.update._id;
+
+    const leadRes = await request(app)
+      .patch(`/api/updates/${firstUpdateId}/pin`)
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({
+        pinned: true,
+      });
+
+    expect(leadRes.status).toBe(200);
+
+    const res = await request(app).get("/api/updates");
+
+    expect(res.status).toBe(200);
+    expect(res.body.updates).toHaveLength(2);
+    expect(res.body.updates[0].text).toBe("First Update");
+  });
+});
