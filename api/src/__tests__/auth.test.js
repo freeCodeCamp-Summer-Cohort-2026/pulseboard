@@ -1,8 +1,9 @@
 const request = require("supertest");
 const { createApp } = require("../app");
 const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
-const { User } = require("../models/User");
-const { PasswordReset } = require("../models/Password_Reset");
+const User = require("../models/User");
+const PasswordReset = require("../models/Password_Reset");
+const crypto = require("node:crypto");
 
 const app = createApp();
 
