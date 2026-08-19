@@ -15,3 +15,16 @@ services:
                       - .next
                 - action: rebuild
                   path: ./web/package.json
+    api:
+        build:
+            target: dev
+        command: npm run dev
+        develop:
+            watch:
+                - action: sync
+                  path: ./api
+                  target: /src
+                  ignore:
+                      - node_modules
+                - action: rebuild
+                  path: ./api/package.json

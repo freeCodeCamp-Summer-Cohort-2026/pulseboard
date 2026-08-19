@@ -9,24 +9,39 @@ const STATUS_OPTIONS = ["on-track", "blocked", "done"];
 export default function Feed({ auth, refreshToken, socket }) {
   const [updates, setUpdates] = useState([]);
   const [allUpdates, setAllUpdates] = useState([]);
+
   const [statusFilter, setStatusFilter] = useState("");
   const [authorFilter, setAuthorFilter] = useState("");
   const [tagFilter, setTagFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [page, setPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const LIMIT = 10;
+
   const [showMyUpdates, setShowMyUpdates] = useState(false);
   const [showJumpToTop, setShowJumpToTop] = useState(false);
 
+  // Jump-to-top button
   useEffect(() => {
     function handleScroll() {
       setShowJumpToTop(window.scrollY > window.innerHeight);
     }
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, []);
 
+  // Load the current feed
   //* Attach and detach event handlers for websocket (if initialized)
   useEffect(() => {
     if (!socket) return;
@@ -42,22 +57,44 @@ export default function Feed({ auth, refreshToken, socket }) {
 
   useEffect(() => {
     let cancelled = false;
+
     setLoading(true);
-    listUpdates({
+    setPage(1);
+    setError(null);
+
+    const filters = {
       status: statusFilter || undefined,
       author: authorFilter || undefined,
-      tag: tagFilter || undefined,
       sort: sortOrder,
-    })
-      .then(({ updates: fetched }) => {
-        if (!cancelled) setUpdates(fetched);
+    };
+
+    
+    if (tagFilter) {
+      filters.tag = tagFilter;
+    }
+
+    listUpdates(filters)
+      .then(({ updates: fetched = [], pagination }) => {
+        if (cancelled) return;
+
+        setUpdates(fetched);
+        setHasNextPage(pagination?.hasNextPage ?? false);
+
+        if (!statusFilter && !authorFilter && !tagFilter) {
+          setAllUpdates(fetched);
+        }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) {
+          setError(err.message);
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       });
+
     return () => {
       cancelled = true;
     };
@@ -67,18 +104,21 @@ export default function Feed({ auth, refreshToken, socket }) {
     tagFilter,
     sortOrder,
     refreshToken,
-    allUpdates,
   ]);
 
   useEffect(() => {
     let cancelled = false;
 
     listUpdates()
-      .then(({ updates: fetched }) => {
-        if (!cancelled) setAllUpdates(fetched);
+      .then(({ updates: fetched = [] }) => {
+        if (!cancelled) {
+          setAllUpdates(fetched);
+        }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message);
+        if (!cancelled) {
+          setError(err.message);
+        }
       });
 
     return () => {
@@ -86,24 +126,69 @@ export default function Feed({ auth, refreshToken, socket }) {
     };
   }, [refreshToken]);
 
+  // Load next page
+  async function loadMore() {
+    if (loadingMore || !hasNextPage) {
+      return;
+    }
+
+    setLoadingMore(true);
+    setError(null);
+
+    try {
+      const nextPage = page + 1;
+
+      const params = {
+        status: statusFilter || undefined,
+        author: authorFilter || undefined,
+        sort: sortOrder,
+        page: nextPage,
+        limit: LIMIT,
+      };
+
+      if (tagFilter) {
+        params.tag = tagFilter;
+      }
+
+      const {
+        updates: fetched = [],
+        pagination,
+      } = await listUpdates(params);
+
+      setUpdates((prev) => [...prev, ...fetched]);
+      setPage(nextPage);
+      setHasNextPage(pagination?.hasNextPage ?? false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   const authors = useMemo(() => {
     const map = new Map();
 
-    for (const u of allUpdates) {
-      if (u.author?._id) {
-        map.set(u.author._id, u.author.displayName);
+    for (const update of allUpdates) {
+      if (update.author?._id) {
+        map.set(
+          update.author._id,
+          update.author.displayName,
+        );
       }
     }
+
     return Array.from(map.entries());
   }, [allUpdates]);
 
   const tags = useMemo(() => {
     const tagsArray = [];
-    for (const u of updates) {
-      tagsArray.push(...(u.tags ?? []));
+
+    for (const update of allUpdates) {
+      tagsArray.push(...(update.tags ?? []));
     }
+
     return [...new Set(tagsArray)];
-  }, [updates]);
+  }, [allUpdates]);
 
   //* Handler for incoming POST:update event on websocket
   function handleRcvdUpdate(update) {
@@ -128,21 +213,39 @@ export default function Feed({ auth, refreshToken, socket }) {
 
   function handleUpdated(updated) {
     setUpdates((prev) =>
-      prev.map((u) => (u._id === updated._id ? updated : u)),
+      prev.map((update) =>
+        update._id === updated._id ? updated : update,
+      ),
+    );
+
+    setAllUpdates((prev) =>
+      prev.map((update) =>
+        update._id === updated._id ? updated : update,
+      ),
     );
   }
 
   function handleDeleted(deleteId) {
-    setUpdates((prev) => prev.filter((update) => update._id !== deleteId));
+    setUpdates((prev) =>
+      prev.filter((update) => update._id !== deleteId),
+    );
+
+    setAllUpdates((prev) =>
+      prev.filter((update) => update._id !== deleteId),
+    );
   }
 
   function handleJumpToTop() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
   function handleShowMyUpdates() {
     try {
       setShowMyUpdates(!showMyUpdates);
+
       if (!showMyUpdates) {
         setAuthorFilter(auth ? auth.user._id : "");
       } else {
@@ -161,34 +264,40 @@ export default function Feed({ auth, refreshToken, socket }) {
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="">All statuses</option>
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s}
+
+          {STATUS_OPTIONS.map((status) => (
+            <option key={status} value={status}>
+              {status}
             </option>
           ))}
         </select>
+
         <select
           value={authorFilter}
           onChange={(e) => setAuthorFilter(e.target.value)}
         >
           <option value="">All authors</option>
+
           {authors.map(([id, name]) => (
             <option key={id} value={id}>
               {name}
             </option>
           ))}
         </select>
+
         <select
           value={tagFilter}
           onChange={(e) => setTagFilter(e.target.value)}
         >
           <option value="">All tags</option>
-          {tags.map((t) => (
-            <option key={t} value={t}>
-              {t}
+
+          {tags.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag}
             </option>
           ))}
         </select>
+
         {auth && (
           <div>
             <input
@@ -197,25 +306,44 @@ export default function Feed({ auth, refreshToken, socket }) {
               checked={showMyUpdates}
               onChange={handleShowMyUpdates}
             />
-            <label htmlFor="show-updates-checkbox">Show My Updates</label>
+
+            <label htmlFor="show-updates-checkbox">
+              Show My Updates
+            </label>
           </div>
         )}
+
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value)}
         >
           <option value="newest">Newest first</option>
           <option value="oldest">Oldest first</option>
-          <option value="most-reactions">Most reactions</option>
+          <option value="most-reactions">
+            Most reactions
+          </option>
         </select>
       </div>
 
-      {error && <p className="error">{error}</p>}
-      {loading && <p className="hint">Loading feed...</p>}
+      {error && (
+        <p className="error">
+          {error}
+        </p>
+      )}
+
+      {loading && (
+        <p className="hint">
+          Loading feed...
+        </p>
+      )}
+
       {!loading && updates.length === 0 && (
         statusFilter || authorFilter || tagFilter ? (
           <div>
-            <p className="hint">No updates match your filters.</p>
+            <p className="hint">
+              No updates match your filters.
+            </p>
+
             <button
               type="button"
               onClick={() => {
@@ -229,7 +357,9 @@ export default function Feed({ auth, refreshToken, socket }) {
             </button>
           </div>
         ) : (
-          <p className="hint">No updates yet.</p>
+          <p className="hint">
+            No updates yet.
+          </p>
         )
       )}
 
@@ -244,6 +374,15 @@ export default function Feed({ auth, refreshToken, socket }) {
           />
         ))}
       </div>
+
+      {hasNextPage && (
+        <button
+          onClick={loadMore}
+          disabled={loadingMore}
+        >
+          {loadingMore ? "Loading..." : "Load more"}
+        </button>
+      )}
 
       {showJumpToTop && (
         <button

@@ -3,6 +3,7 @@ const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const authRoutes = require("./routes/auth");
 const updatesRoutes = require("./routes/updates");
+const usersRoutes = require("./routes/users");
 
 function createApp() {
   const app = express();
@@ -25,6 +26,7 @@ function createApp() {
 
   app.use("/api/auth", writeLimiter, authRoutes);
   app.use("/api/updates", updatesRoutes);
+  app.use("/api/users", usersRoutes);
 
   app.use((req, res) => {
     res.status(404).json({ error: "Not found" });
