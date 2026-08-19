@@ -1,8 +1,22 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const rateLimit = require("express-rate-limit");
 
 const router = express.Router();
+const loginLimiterStore = new rateLimit.MemoryStore();
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  store: loginLimiterStore,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: "Too many login attempts. Please try again later.",
+  },
+});
 
 function signToken(user) {
   return jwt.sign(
@@ -55,7 +69,7 @@ router.post("/register", async (req, res) => {
 });
 
 // POST /api/auth/login
-router.post("/login", async (req, res) => {
+router.post("/login", loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -81,3 +95,4 @@ router.post("/login", async (req, res) => {
 });
 
 module.exports = router;
+module.exports.resetLoginLimiter = () => loginLimiterStore.resetAll();
