@@ -685,3 +685,88 @@ section {
 .reaction-emoji {
   line-height: 1.5;
 }
+
+/* Skeleton styles */
+
+.feed-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.skeleton-card {
+  background: var(--surface-bg);
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+}
+
+.skeleton-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+}
+
+.skeleton-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.skeleton-card-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--surface-border);
+  color: var(--text-secondary);
+}
+
+.skeleton-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.skeleton-card-title {
+  height: 1.25rem;
+  width: 120px;
+  background: var(--surface-border);
+  border-radius: 4px;
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-card-subtitle {
+  height: 0.8rem;
+  width: 80px;
+  background: var(--surface-border);
+  border-radius: 4px;
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-card-body {
+  height: 2.5rem;
+  margin-top: 0.85rem;
+  background: var(--surface-border);
+  border-radius: 4px;
+  animation: pulse 1.5s infinite;
+}
+
+.skeleton-card-footer {
+  height: 1.5rem;
+  margin-top: 0.85rem;
+  background: var(--surface-border);
+  border-radius: 4px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}

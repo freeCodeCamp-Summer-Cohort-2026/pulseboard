@@ -275,3 +275,26 @@ describe("Feed - jump to top button", () => {
     });
   });
 });
+
+describe("Feed - loading state", () => {
+  it("shows the skeleton while loading and removes it when done", async () => {
+    let resolveAPI;
+    const mockPromise = new Promise((resolve) => {
+      resolveAPI = resolve;
+    });
+
+    listUpdates.mockReturnValue(mockPromise);
+
+    render(<Feed auth={null} refreshToken={0} />);
+
+    expect(screen.getAllByTestId("skeleton-card")).toHaveLength(3);
+
+    resolveAPI({ updates: [] });
+
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId("skeleton-card"),
+      ).not.toBeInTheDocument(),
+    );
+  });
+});
