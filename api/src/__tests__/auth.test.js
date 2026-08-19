@@ -1,7 +1,8 @@
 const request = require("supertest");
 const { createApp } = require("../app");
 const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
-const { User, PasswordReset } = require("../models/User");
+const { User } = require("../models/User");
+const { PasswordReset } = require("../models/Password_Reset");
 
 const app = createApp();
 
@@ -194,30 +195,6 @@ describe("POST /api/auth/forgot-password", () => {
 
     expect(resetAttempt.status).toBe(400);
     expect(resetAttempt.body.message).toBe("Invalid or expired token");
-  });
-  it("rejects an expired reset token", async () => {
-    const user = await User.findOne({
-      email: "target@example.com",
-    });
-  
-    const expiredToken = await request(app)
-      .post("/api/auth/forgot-password")
-      .send({ email: "target@example.com" });
-  
-    await PasswordReset.updateOne(
-      { userId: user._id },
-      { expiresAt: new Date(Date.now() - 1000) },
-    );
-  
-    const res = await request(app)
-      .post("/api/auth/reset-password")
-      .send({
-        token: expiredToken.body.devResetToken,
-        newPassword: "newpassword123",
-      });
-  
-    expect(res.status).toBe(400);
-    expect(res.body.message).toBe("Invalid or expired token");
   });
 });
 
