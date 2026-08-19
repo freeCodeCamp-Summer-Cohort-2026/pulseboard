@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { listUpdates } from "@/lib/api";
 import UpdateCard from "./UpdateCard";
+import FeedSkeleton from "./FeedSkeleton";
 
 const STATUS_OPTIONS = ["on-track", "blocked", "done"];
 
@@ -332,9 +333,7 @@ export default function Feed({ auth, refreshToken, socket }) {
       )}
 
       {loading && (
-        <p className="hint">
-          Loading feed...
-        </p>
+        <FeedSkeleton />
       )}
 
       {!loading && updates.length === 0 && (
