@@ -13,7 +13,7 @@ const passwordResetSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    expiresIn: {
+    expiresAt: {
       type: Date,
       required: true,
     },
