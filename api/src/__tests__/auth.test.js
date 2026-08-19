@@ -174,6 +174,18 @@ describe("POST /api/auth/forgot-password", () => {
     expect(resetAttempt.status).toBe(400);
     expect(resetAttempt.body.message).toBe("Invalid or expired token");
   });
+  it("does not reveal whether an email exists", async () => {
+    const res = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({
+        email: "doesnotexist@example.com",
+      });
+  
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe(
+      "If an account exists, a password reset token has been generated.",
+    );
+  });
 });
 
 describe("POST /api/auth/reset-password", () => {
