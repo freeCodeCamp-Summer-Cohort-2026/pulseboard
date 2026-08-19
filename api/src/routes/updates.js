@@ -399,7 +399,7 @@ router.patch("/:id/pin", requireAuth, checkRole("LEAD"), async (req, res) => {
     const update = await Update.findById(req.params.id);
 
     if (!update)
-      return res.status(404).json({ error: "Access Denied" });
+      return res.status(404).json({ error: "Update not found" });
 
     update.pinned = pinned;
     await update.save();

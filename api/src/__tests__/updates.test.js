@@ -1428,4 +1428,38 @@ describe("PATCH /api/updates/:id/pin", () => {
     expect(res.body.updates).toHaveLength(2);
     expect(res.body.updates[0].text).toBe("First Update");
   });
+
+  it("returns 404 when pinning an non-existing update", async () => {
+    await User.findOneAndUpdate(
+      {email: "author@example.com"},
+      {role: "LEAD"},
+    );
+
+    const loginRes = await request(app).post("/api/auth/login").send({
+      email: "author@example.com",
+      password: "password123",
+    });
+
+    const token = loginRes.body.token;
+    
+    const createRes = await request(app)
+      .post("/api/updates/")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "First Update", status: "on-track" });
+
+    const updateId = createRes.body.update._id;
+
+    const deleteRes = await request(app)
+      .delete(`/api/updates/${updateId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    const pinRes = await request(app)
+      .patch(`/api/updates/${updateId}/pin`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        pinned: true,
+      });
+
+    expect(pinRes.status).toBe(404);
+  })
 });
