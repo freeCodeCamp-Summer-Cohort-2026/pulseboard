@@ -27,6 +27,30 @@ const MS_PER_MINUTE = 60 * 1000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 
+// adding optimistic update function
+function createOptimisticUpdate(update, emoji, userId, isAdding) {
+  const reactions = [...(update.reactions || [])];
+  // Adding reaction optimistically with temporary ID
+  if (isAdding) {    
+    reactions.push({
+      emoji,
+      user: { _id: userId },
+      _id: `temp-${Date.now()}`,
+      createdAt: new Date().toISOString()
+    });
+  } else {
+    
+    const index = reactions.findIndex(
+      r => r.emoji === emoji && r.user?._id === userId
+    );
+    if (index !== -1) {
+      reactions.splice(index, 1);
+    }
+  }
+  
+  return { ...update, reactions };
+}
+
 export function formatRelativeTime(createdAt, now = Date.now()) {
   const createdDate = new Date(createdAt);
   const createdTime = createdDate.getTime();
@@ -105,7 +129,11 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [editText, setEditText] = useState(update.text);
   const [editStatus, setEditStatus] = useState(update.status);
   const [saving, setSaving] = useState(false);
+<<<<<<< HEAD
   const [isCopied, setIsCopied] = useState(false);
+=======
+  const [pendingReactions, setPendingReactions] = useState({}); 
+>>>>>>> 5570e5c (feat: add optimistic reaction updates with rollback)
   const reactionGroups = groupReactions(update.reactions || []);
 
   const visibleReactions = [
@@ -117,36 +145,56 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
     setEditStatus(update.status);
   }, [update._id, update.text, update.status]);
 
-  async function handleReactionToggle(emoji) {
-    if (!auth) return;
-    setError(null);
 
-    const myReaction = findUserReaction(
-      update.reactions || [],
-      auth.user?._id,
-      emoji,
-    );
+async function handleReactionToggle(emoji) {
+  if (!auth) return;
+  setError(null);
 
-    try {
-      let updated;
+  const userId = auth.user?._id;
+  const myReaction = findUserReaction(
+    update.reactions || [],
+    userId,
+    emoji,
+  );
 
-      if (myReaction) {
-        ({ update: updated } = await removeReaction(
-          { updateId: update._id, reactionId: myReaction._id },
-          auth.token,
-        ));
-      } else {
-        ({ update: updated } = await addReaction(
-          { updateId: update._id, emoji },
-          auth.token,
-        ));
-      }
+  const previousUpdate = update;
+  const isAdding = !myReaction;
 
-      onUpdated(updated);
-    } catch (err) {
-      setError(err.message);
+  // Optimistic update
+  const optimisticUpdate = createOptimisticUpdate(
+    previousUpdate,
+    emoji,
+    userId,
+    isAdding
+  );
+  onUpdated(optimisticUpdate);
+
+  
+  setPendingReactions(prev => ({ ...prev, [emoji]: isAdding ? 'adding' : 'removing' }));
+
+  try {
+    let updated;
+    if (isAdding) {
+      ({ update: updated } = await addReaction(
+        { updateId: update._id, emoji },
+        auth.token,
+      ));
+    } else {
+      ({ update: updated } = await removeReaction(
+        { updateId: update._id, reactionId: myReaction._id },
+        auth.token,
+      ));
     }
+
+    setPendingReactions(prev => ({ ...prev, [emoji]: undefined }));
+    onUpdated(updated);
+  } catch (err) {
+    setPendingReactions(prev => ({ ...prev, [emoji]: undefined }));
+    onUpdated(previousUpdate);
+    setError(err.message);
   }
+}
+
 
   async function handleTogglePin() {
     if (!auth) return;
@@ -331,13 +379,14 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
               <button
                 key={emoji}
                 type="button"
-                className={`reaction-button ${myReaction ? "active" : ""}`}
+                className={`reaction-button ${myReaction ? "active" : ""} ${pendingReactions[emoji] ? "pending" : ""}`} 
                 aria-pressed={Boolean(myReaction)}
-                disabled={!auth}
+                disabled={!auth || !!pendingReactions[emoji]}
                 onClick={() => handleReactionToggle(emoji)}
               >
                 <span className="reaction-emoji">{emoji}</span>
                 <span className="reaction-count">{count}</span>
+                {pendingReactions[emoji] && <span className="reaction-spinner">⟳</span>}
               </button>
             );
           })}
