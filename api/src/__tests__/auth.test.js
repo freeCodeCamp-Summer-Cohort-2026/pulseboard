@@ -1,6 +1,7 @@
 const request = require("supertest");
 const { createApp } = require("../app");
 const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
+const { User, PasswordReset } = require("../models/User");
 
 const app = createApp();
 
@@ -194,6 +195,30 @@ describe("POST /api/auth/forgot-password", () => {
     expect(resetAttempt.status).toBe(400);
     expect(resetAttempt.body.message).toBe("Invalid or expired token");
   });
+  it("rejects an expired reset token", async () => {
+    const user = await User.findOne({
+      email: "target@example.com",
+    });
+  
+    const expiredToken = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "target@example.com" });
+  
+    await PasswordReset.updateOne(
+      { userId: user._id },
+      { expiresAt: new Date(Date.now() - 1000) },
+    );
+  
+    const res = await request(app)
+      .post("/api/auth/reset-password")
+      .send({
+        token: expiredToken.body.devResetToken,
+        newPassword: "newpassword123",
+      });
+  
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid or expired token");
+  });
 });
 
 describe("POST /api/auth/reset-password", () => {
@@ -336,54 +361,46 @@ describe("POST /api/auth/reset-password", () => {
     const user = await User.findOne({
       email: "target@example.com",
     });
-
-    const token1 = crypto.randomBytes(32).toString("hex");
-    const token2 = crypto.randomBytes(32).toString("hex");
-
-    const tokenHash1 = crypto
+  
+    const firstRes = await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: "target@example.com" });
+  
+    // Normally forgot-password invalidates previous tokens,
+    // so create the second token directly for this test.
+    const crypto = require("node:crypto");
+  
+    const rawSecondToken = crypto.randomBytes(32).toString("hex");
+    const secondTokenHash = crypto
       .createHash("sha256")
-      .update(token1)
+      .update(rawSecondToken)
       .digest("hex");
-
-    const tokenHash2 = crypto
-      .createHash("sha256")
-      .update(token2)
-      .digest("hex");
-
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
-
-    await PasswordReset.create([
-      {
-        userId: user._id,
-        tokenHash: tokenHash1,
-        expiresAt,
-      },
-      {
-        userId: user._id,
-        tokenHash: tokenHash2,
-        expiresAt,
-      },
-    ]);
-
+  
+    await PasswordReset.create({
+      userId: user._id,
+      tokenHash: secondTokenHash,
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000),
+    });
+  
+    // Use the first token.
     const resetRes = await request(app)
       .post("/api/auth/reset-password")
       .send({
-        token: token1,
+        token: firstRes.body.devResetToken,
         newPassword: "newpassword123",
       });
-
+  
     expect(resetRes.status).toBe(200);
-
-    const secondTokenAttempt = await request(app)
+  
+    // Second outstanding token must now be invalid.
+    const secondResetRes = await request(app)
       .post("/api/auth/reset-password")
       .send({
-        token: token2,
+        token: rawSecondToken,
         newPassword: "anotherpassword123",
       });
-
-    expect(secondTokenAttempt.status).toBe(400);
-    expect(secondTokenAttempt.body.message).toBe(
-      "Invalid or expired token",
-    );
+  
+    expect(secondResetRes.status).toBe(400);
+    expect(secondResetRes.body.message).toBe("Invalid or expired token");
   });
 });
