@@ -92,16 +92,20 @@ router.post("/forgot-password", async (req,res) => {
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
+    if(!user){
+      return res.status(200).json({ message: "if account exists reset token has been generated" });
+    }
+    
     await PasswordReset.deleteMany({ userId: user._id });
 
     const rawToken = crypto.randomBytes(32).toString("hex");
     const generatedToken = crypto.createHash("sha256").update(rawToken).digest("hex");
-    const expiresIn = Date.now() + 10 * 1000 * 60;
+    const expiresAt = new Date(Date.now() + 30 * 1000 * 60);
 
     await PasswordReset.create({
       userId: user._id,
       tokenHash: generatedToken,
-      expiresIn
+      expiresAt
     });
 
     return res.status(201).json({ message: "Password reset token has been generated", devResetToken: process.env.NODE_ENV !== "production" ? rawToken : undefined });
@@ -124,7 +128,7 @@ router.post("/reset-password", async (req,res) => {
     }
     
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    const changeRequest = await PasswordReset.findOne({ tokenHash,expiresIn:{ $gt: new Date() } });
+    const changeRequest = await PasswordReset.findOne({ tokenHash, expiresAt:{ $gt: new Date() } });
   
     if(!changeRequest){
       return res.status(400).json({ message: "Invalid or expired token" });
@@ -142,8 +146,8 @@ router.post("/reset-password", async (req,res) => {
     await user.save();
   
     // Token can never be used again.
-    await PasswordReset.deleteOne({
-      _id: changeRequest._id,
+    await PasswordReset.deleteMany({
+      userId: changeRequest.userId,
     });
   
     return res.status(200).json({
