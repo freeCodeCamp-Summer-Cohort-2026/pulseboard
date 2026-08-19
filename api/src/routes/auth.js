@@ -93,7 +93,7 @@ router.post("/forgot-password", async (req,res) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if(!user){
-      return res.status(200).json({ message: "if account exists reset token has been generated" });
+      return res.status(200).json({ message: "If an account exists, a password reset token has been generated." });
     }
     
     await PasswordReset.deleteMany({ userId: user._id });
