@@ -330,19 +330,6 @@ export default function Feed({ auth, refreshToken, socket }) {
           ))}
         </select>
 
-        {auth && (
-          <div>
-            <input
-              id="show-updates-checkbox"
-              type="checkbox"
-              checked={showMyUpdates}
-              onChange={handleShowMyUpdates}
-            />
-
-            <label htmlFor="show-updates-checkbox">Show My Updates</label>
-          </div>
-        )}
-
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value)}
@@ -361,6 +348,21 @@ export default function Feed({ auth, refreshToken, socket }) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)} 
         />
+
+        {auth && (
+          <div>
+            <input
+              id="show-updates-checkbox"
+              type="checkbox"
+              checked={showMyUpdates}
+              onChange={handleShowMyUpdates}
+            />
+
+            <label htmlFor="show-updates-checkbox">
+              Show My Updates
+            </label>
+          </div>
+        )}
       </div>
 
       {error && <p className="error">{error}</p>}
