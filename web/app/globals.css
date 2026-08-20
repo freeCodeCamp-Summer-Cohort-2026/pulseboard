@@ -192,9 +192,31 @@ section {
   transform: translateY(-2px);
 }
 
+/* Visually hidden, but still announced and still a real label target. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 .remove-tag {
   cursor: pointer;
   transform: translateY(-2px);
+  /* This is a <button> so it is focusable and operable from the keyboard.
+     The reset keeps it looking exactly like the <span> it replaced. */
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  line-height: 1;
 }
 
 .tag-input {
