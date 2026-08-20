@@ -10,6 +10,7 @@ services:
   api:
     build:
       context: ./api
+      target: prod
     restart: unless-stopped
     depends_on:
       - mongo
@@ -23,6 +24,7 @@ services:
   web:
     build:
       context: ./web
+      target: runner
       args:
         NEXT_PUBLIC_API_URL: http://localhost:4000
     restart: unless-stopped

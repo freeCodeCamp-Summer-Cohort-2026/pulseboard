@@ -685,3 +685,38 @@ section {
 .reaction-emoji {
   line-height: 1.5;
 }
+
+/* Pin button styles */
+.pin-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 16px;
+  border: 1px solid #d1d5db;
+  background-color: transparent;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pin-btn:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.pin-btn.is-pinned {
+  background-color: #fef3c7;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.pin-btn.is-pinned:hover:not(:disabled) {
+  background-color: #fde68a; 
+  border-color: #fbbf24;
+}
+
+.pin-btn:disabled {
+  cursor: default;
+  border-color: transparent; 
+  opacity: 0.9;
+}

@@ -147,6 +147,15 @@ The data model is intentionally shallow: a `User` has an email, display name,
 and password hash. An `Update` has an author, text body, status, and an
 embedded array of reactions (emoji + reacting user).
 
+## User Role Permissions
+| Action | Permitted Roles |
+| ---- | ----------- |
+| Create own posts | LEAD, MEMBER |
+| Edit own posts | LEAD, MEMBER |
+| Delete own posts | LEAD, MEMBER |
+| Delete other posts | LEAD |
+| Pin/unpin posts | LEAD |
+
 ## Real-time Updates
 
 **Socket.IO** is used to push new updates and reactions to connected clients in real-time.

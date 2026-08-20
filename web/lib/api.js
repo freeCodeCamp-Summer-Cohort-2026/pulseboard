@@ -118,3 +118,11 @@ export function removeReaction({ updateId, reactionId }, token) {
     token,
   });
 }
+
+export function togglePin({ updateId, pinned }, token) {
+  return request(`/api/updates/${updateId}/pin`, {
+    method: "PATCH",
+    body: { pinned },
+    token,
+  })
+}

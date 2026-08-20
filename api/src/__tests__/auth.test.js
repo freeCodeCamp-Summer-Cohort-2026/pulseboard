@@ -4,6 +4,7 @@ const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
 const User = require("../models/User");
 const PasswordReset = require("../models/Password_Reset");
 const crypto = require("node:crypto");
+const authRoutes = require("../routes/auth");
 
 const app = createApp();
 
@@ -13,6 +14,7 @@ beforeAll(async () => {
 
 afterEach(async () => {
   await clearTestDB();
+  authRoutes.resetLoginLimiter();
 });
 
 afterAll(async () => {
@@ -127,6 +129,26 @@ describe("POST /api/auth/login", () => {
     });
 
     expect(res.status).toBe(401);
+  });
+
+  it("returns 429 after too many failed login attempts", async () => {
+    const attemptLimit = 5;
+    const expectedMessage = "Too many login attempts. Please try again later.";
+
+    const makeFailedRequest = () =>
+      request(app).post("/api/auth/login").send({
+        email: "login@example.com",
+        password: "wrongpassword",
+      });
+
+    for (let attempt = 0; attempt < attemptLimit; attempt += 1) {
+      const response = await makeFailedRequest();
+      expect(response.status).toBe(401);
+    }
+
+    const blockedResponse = await makeFailedRequest();
+    expect(blockedResponse.status).toBe(429);
+    expect(blockedResponse.body.error).toBe(expectedMessage);
   });
 });
 

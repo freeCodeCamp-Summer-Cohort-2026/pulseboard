@@ -87,6 +87,7 @@ if (sort === "most-reactions") {
     },
     {
       $sort: {
+        pinned: -1,
         reactionCount: -1,
         createdAt: -1,
       },
@@ -101,7 +102,7 @@ if (sort === "most-reactions") {
   ]);
 } else {
   updates = await Update.find(filter)
-    .sort({ createdAt: sortDirection })
+    .sort({ pinned: -1, createdAt: sortDirection })
     .skip((page - 1) * limit)
     .limit(limit)
     .populate("author", "displayName email")
@@ -387,6 +388,27 @@ router.patch("/:id", requireAuth, async (req, res) => {
     ]);
 
     return res.json({ update: populated });
+  } catch (err) {
+    return res.status(400).json({ error: "Invalid update id" });
+  }
+});
+
+router.patch("/:id/pin", requireAuth, checkRole("LEAD"), async (req, res) => {
+  try {
+    const { pinned } = req.body;
+    const update = await Update.findById(req.params.id);
+
+    if (!update)
+      return res.status(404).json({ error: "Update not found" });
+
+    update.pinned = pinned;
+    await update.save();
+
+    const populated = await update
+      .populate("author", "displayName email");
+
+    return res.status(200).json({ update: populated });
+
   } catch (err) {
     return res.status(400).json({ error: "Invalid update id" });
   }
