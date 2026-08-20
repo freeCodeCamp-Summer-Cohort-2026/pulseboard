@@ -19,6 +19,20 @@ const createUpdateLimiter = rateLimit({
   keyGenerator: (req) => req.user?.id,
 });
 
+//60/min because it takes lesser time and effort to react, unlike creating an update
+//so a user might react more in a min
+const reactionLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error:
+      "Too many reactions clicked. Please wait a minute before reacting again."
+  },
+  keyGenerator: (req)=> req.user?.id,
+})
+
 // Legacy records predate the visibility field, so treat anything but an explicit "leads" as visible.
 function isVisibleToRequester(update, user) {
   return update.visibility !== "leads" || Boolean(user && user.role === "LEAD");
@@ -533,6 +547,7 @@ router.post(
 router.post(
   "/:id/reactions",
   requireAuth,
+  reactionLimiter,
   checkRole("LEAD", "MEMBER"),
   async (req, res) => {
     try {
@@ -585,6 +600,7 @@ router.post(
 router.delete(
   "/:id/reactions/:reactionId",
   requireAuth,
+  reactionLimiter,
   checkRole("LEAD", "MEMBER"),
   async (req, res) => {
     try {

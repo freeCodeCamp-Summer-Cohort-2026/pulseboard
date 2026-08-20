@@ -885,6 +885,29 @@ describe("POST /api/updates/:id/reactions", () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toBe("emoji cannot exceed 8 characters");
   });
+
+  it("limits 60 reactions in a window", async ()=>{
+    const createRes = await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "React to me", status: "on-track" });
+
+    const updateId = createRes.body.update._id;
+
+    const makeRequest = (i)=> request(app)
+      .post(`/api/updates/${updateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({emoji: `b${i}`})
+
+      for(let i = 0; i < 60 ; i++){
+        const res = await makeRequest(i)
+        expect(res.status).toBe(201)
+      }
+
+      const res = await makeRequest(61)
+      expect(res.status).toBe(429)
+      expect(res.body.error).toBe("Too many reactions clicked. Please wait a minute before reacting again.")
+  })
 });
 
 describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
