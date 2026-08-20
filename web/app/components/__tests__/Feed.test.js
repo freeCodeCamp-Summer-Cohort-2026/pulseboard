@@ -275,3 +275,109 @@ describe("Feed - jump to top button", () => {
     });
   });
 });
+
+describe("Feed - clear all filters", () => {
+  const auth = {
+    user: { displayName: "Test User", _id: "u1" },
+  };
+
+  // One update, so the feed is not in its empty state -- the point of this
+  // control is that it exists before a user stumbles into that state.
+  const updates = [
+    {
+      _id: "up1",
+      text: "shipped",
+      status: "blocked",
+      tags: ["release"],
+      author: { _id: "u2", displayName: "Someone Else" },
+      createdAt: "2026-08-18T10:00:00.000Z",
+      reactions: [],
+    },
+  ];
+
+  beforeEach(() => {
+    listUpdates.mockResolvedValue({ updates });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  const clearButton = () =>
+    screen.getAllByRole("button", { name: "Clear filters" })[0];
+
+  it("is visible but disabled when nothing is filtered", async () => {
+    render(<Feed auth={auth} refreshToken={0} />);
+
+    await waitFor(() => expect(listUpdates).toHaveBeenCalled());
+
+    expect(clearButton()).toBeInTheDocument();
+    expect(clearButton()).toBeDisabled();
+  });
+
+  it.each([
+    ["status", 0, "blocked"],
+    ["author", 1, "u2"],
+    ["tag", 2, "release"],
+    ["sort", 3, "oldest"],
+  ])("enables and then clears the %s filter", async (_name, index, value) => {
+    render(<Feed auth={auth} refreshToken={0} />);
+    await waitFor(() => expect(listUpdates).toHaveBeenCalled());
+
+    const select = screen.getAllByRole("combobox")[index];
+    fireEvent.change(select, { target: { value } });
+
+    expect(select).toHaveValue(value);
+    await waitFor(() => expect(clearButton()).toBeEnabled());
+
+    fireEvent.click(clearButton());
+
+    // Back to the default, and the control disables itself again.
+    await waitFor(() => expect(clearButton()).toBeDisabled());
+    expect(select).toHaveValue(index === 3 ? "newest" : "");
+  });
+
+  it("clears Show My Updates along with the author filter", async () => {
+    render(<Feed auth={auth} refreshToken={0} />);
+    await waitFor(() => expect(listUpdates).toHaveBeenCalled());
+
+    const checkbox = screen.getByRole("checkbox", { name: "Show My Updates" });
+    fireEvent.click(checkbox);
+
+    expect(checkbox).toBeChecked();
+    await waitFor(() => expect(clearButton()).toBeEnabled());
+
+    fireEvent.click(clearButton());
+
+    expect(checkbox).not.toBeChecked();
+    await waitFor(() =>
+      expect(listUpdates).toHaveBeenLastCalledWith({
+        status: undefined,
+        author: undefined,
+        sort: "newest",
+      }),
+    );
+  });
+
+  it("clears every filter at once", async () => {
+    render(<Feed auth={auth} refreshToken={0} />);
+    await waitFor(() => expect(listUpdates).toHaveBeenCalled());
+
+    const [status, author, tag, sort] = screen.getAllByRole("combobox");
+    fireEvent.change(status, { target: { value: "blocked" } });
+    fireEvent.change(author, { target: { value: "u2" } });
+    fireEvent.change(tag, { target: { value: "release" } });
+    fireEvent.change(sort, { target: { value: "oldest" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Show My Updates" }));
+
+    await waitFor(() => expect(clearButton()).toBeEnabled());
+    fireEvent.click(clearButton());
+
+    expect(status).toHaveValue("");
+    expect(author).toHaveValue("");
+    expect(tag).toHaveValue("");
+    expect(sort).toHaveValue("newest");
+    expect(screen.getByRole("checkbox", { name: "Show My Updates" })).not.toBeChecked();
+    await waitFor(() => expect(clearButton()).toBeDisabled());
+  });
+});
