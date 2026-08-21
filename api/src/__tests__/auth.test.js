@@ -2,11 +2,14 @@ const request = require("supertest");
 const { createApp } = require("../app");
 const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
 const User = require("../models/User");
+const Update = require('../models/Update');
 const PasswordReset = require("../models/Password_Reset");
 const crypto = require("node:crypto");
 const authRoutes = require("../routes/auth");
 
 const app = createApp();
+let token;
+let userId;
 
 beforeAll(async () => {
   await setupTestDB();
@@ -20,6 +23,31 @@ afterEach(async () => {
 afterAll(async () => {
   await teardownTestDB();
 });
+
+async function registerUser(overrides = {}) {
+  if ("role" in overrides) {
+    throw new Error(
+      "registerUser() must not pass role through the public endpoint; " +
+        "promote the user via User.findOneAndUpdate in test setup instead.",
+    );
+  }
+  const res = await request(app)
+    .post("/api/auth/register")
+    .send({
+      email: "author@example.com",
+      password: "password123",
+      displayName: "Author",
+      ...overrides,
+    });
+  return res.body;
+}
+
+beforeEach(async () => {
+  const body = await registerUser();
+  token = body.token;
+  userId = body.user._id;
+});
+
 
 describe("POST /api/auth/register", () => {
   it("creates a new user and returns a token", async () => {
@@ -404,3 +432,56 @@ describe("POST /api/auth/reset-password", () => {
     expect(secondResetRes.body.message).toBe("Invalid or expired token");
   });
 });
+
+describe("DELETE /api/auth/me", () => {
+  it("requires authentication", async () => {
+    const response = await request(app).delete("/api/auth/me")
+    expect(response.statusCode).toBe(401)
+  })
+
+  it("cascades deletion: removes user, their updates, and their reactions", async () => {
+    const bystanderRes = await registerUser({
+      email: "stay@example.com",
+      displayName: "Bystander",
+    })
+    const bystanderId = bystanderRes.user._id || bystanderRes.user.id
+
+    await Update.create({
+      author: userId,
+      text: "This update should be deleted",
+      status: "done",
+      visibility: "team",
+    })
+
+    const bystanderUpdate = await Update.create({
+      author: bystanderId,
+      text: "This update should stay, but lose the reaction",
+      status: "on-track",
+      visibility: "team",
+      reactions: [
+        { emoji: "👍", user: userId },
+        { emoji: "🎉", user: bystanderId },
+      ],
+    })
+
+    const response = await request(app)
+      .delete("/api/auth/me")
+      .set("Authorization", `Bearer ${token}`)
+
+    expect(response.statusCode).toBe(200)
+
+    const foundUser = await User.findById(userId)
+    expect(foundUser).toBeNull()
+
+    const departingUserUpdates = await Update.find({ author: userId })
+    expect(departingUserUpdates.length).toBe(0)
+
+    const updatedBystanderUpdate = await Update.findById(bystanderUpdate._id)
+    expect(updatedBystanderUpdate.reactions.length).toBe(1)
+
+    expect(updatedBystanderUpdate.reactions[0].user.toString()).toBe(
+      bystanderId.toString()
+    )
+    expect(updatedBystanderUpdate.reactions[0].emoji).toBe("🎉")
+  })
+})

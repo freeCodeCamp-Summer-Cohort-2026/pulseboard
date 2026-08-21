@@ -1,10 +1,11 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Update = require('../models/Update')
 const PasswordReset = require("../models/Password_Reset");
 const crypto = require("node:crypto");
 const rateLimit = require("express-rate-limit");
-
+const { requireAuth } = require("../middleware/auth");
 const router = express.Router();
 const loginLimiterStore = new rateLimit.MemoryStore();
 
@@ -189,6 +190,27 @@ router.post("/reset-password", async (req, res) => {
     return res.status(500).json({ error: "Failed to reset password" });
   }
 });
+
+router.delete("/me", requireAuth, async (req, res) => {
+  try {
+    const userId = req.user.id
+
+    await Update.updateMany(
+      { "reactions.user": userId },
+      { $pull: { reactions: { user: userId } } }
+    )
+
+    await Update.deleteMany({ author: userId })
+
+    await User.findByIdAndDelete(userId)
+
+    return res.status(200).json({ 
+      message: "Account and all associated data successfully deleted." 
+    })
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+})
 
 module.exports = router;
 module.exports.resetLoginLimiter = () => loginLimiterStore.resetAll();
