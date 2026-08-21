@@ -18,7 +18,6 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.4.8",
     "@testing-library/react": "^16.0.0",
     "eslint": "8.57.1",
