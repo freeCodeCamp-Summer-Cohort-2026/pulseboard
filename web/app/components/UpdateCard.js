@@ -129,11 +129,8 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
   const [editText, setEditText] = useState(update.text);
   const [editStatus, setEditStatus] = useState(update.status);
   const [saving, setSaving] = useState(false);
-<<<<<<< HEAD
   const [isCopied, setIsCopied] = useState(false);
-=======
   const [pendingReactions, setPendingReactions] = useState({}); 
->>>>>>> 5570e5c (feat: add optimistic reaction updates with rollback)
   const reactionGroups = groupReactions(update.reactions || []);
 
   const visibleReactions = [
