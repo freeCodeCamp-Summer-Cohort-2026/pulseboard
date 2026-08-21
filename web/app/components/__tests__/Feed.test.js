@@ -262,14 +262,12 @@ describe("Feed - manual refresh", () => {
 
     await screen.findByText("Existing update");
 
-    // Select status filter.
     const statusSelect = screen.getAllByRole("combobox")[0];
 
     fireEvent.change(statusSelect, {
       target: { value: "blocked" },
     });
 
-    // Select sort order.
     const sortSelect = screen.getAllByRole("combobox")[3];
 
     fireEvent.change(sortSelect, {
@@ -284,10 +282,8 @@ describe("Feed - manual refresh", () => {
       });
     });
 
-    // Click Refresh.
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
 
-    // Verify Refresh uses the same selected filter and sort.
     await waitFor(() => {
       expect(listUpdates).toHaveBeenLastCalledWith({
         status: "blocked",
@@ -296,7 +292,6 @@ describe("Feed - manual refresh", () => {
       });
     });
 
-    // Verify selected values are still preserved.
     expect(statusSelect).toHaveValue("blocked");
     expect(sortSelect).toHaveValue("oldest");
   });
@@ -308,7 +303,6 @@ describe("Feed - manual refresh", () => {
     listUpdates.mockImplementation(() => {
       callCount += 1;
 
-      // Initial feed requests.
       if (callCount <= 2) {
         return Promise.resolve({
           updates: [
@@ -323,7 +317,6 @@ describe("Feed - manual refresh", () => {
         });
       }
 
-      // Manual refresh request.
       return new Promise((resolve) => {
         resolveRefresh = resolve;
       });
@@ -331,21 +324,16 @@ describe("Feed - manual refresh", () => {
 
     render(<Feed auth={null} refreshToken={0} />);
 
-    // Wait for initial update.
     expect(await screen.findByText("Existing update")).toBeInTheDocument();
 
-    // Click Refresh.
     fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
 
-    // Refresh feedback should appear.
     expect(
       screen.getByRole("button", { name: "Refreshing..." }),
     ).toBeDisabled();
 
-    // Old update must remain visible during refresh.
     expect(screen.getByText("Existing update")).toBeInTheDocument();
 
-    // Complete the manual refresh.
     resolveRefresh({
       updates: [
         {
@@ -358,11 +346,82 @@ describe("Feed - manual refresh", () => {
       },
     });
 
-    // New data should now appear.
     expect(await screen.findByText("Refreshed update")).toBeInTheDocument();
 
-    // Button should return to normal.
     expect(screen.getByRole("button", { name: "Refresh" })).toBeEnabled();
+  });
+});
+
+describe("Feed - empty state", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it("shows a no-updates message when there are no updates", async () => {
+    listUpdates.mockResolvedValue({
+      updates: [],
+      pagination: {
+        hasNextPage: false,
+      },
+    });
+
+    render(<Feed auth={null} refreshToken={0} />);
+
+    expect(await screen.findByText("No updates yet.")).toBeInTheDocument();
+
+    expect(
+      screen.queryByRole("button", { name: "Clear filters" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the active filter when it produces no results", async () => {
+    const existingUpdates = [
+      {
+        _id: "update-1",
+        status: "done",
+        author: {
+          _id: "u1",
+          displayName: "Diego Fernandez",
+        },
+        tags: ["frontend"],
+      },
+    ];
+
+    listUpdates.mockImplementation(({ status } = {}) => {
+      if (status === "blocked") {
+        return Promise.resolve({
+          updates: [],
+          pagination: {
+            hasNextPage: false,
+          },
+        });
+      }
+
+      return Promise.resolve({
+        updates: existingUpdates,
+        pagination: {
+          hasNextPage: false,
+        },
+      });
+    });
+
+    render(<Feed auth={null} refreshToken={0} />);
+
+    const statusSelect = screen.getAllByRole("combobox")[0];
+
+    fireEvent.change(statusSelect, {
+      target: { value: "blocked" },
+    });
+
+    expect(
+      await screen.findByText("No updates match your filters."),
+    ).toBeInTheDocument();
+
+    expect(screen.getByText("Status: blocked")).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", { name: "Clear filters" }),
+    ).toBeInTheDocument();
   });
 });
 

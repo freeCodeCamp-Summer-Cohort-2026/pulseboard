@@ -347,9 +347,25 @@ export default function Feed({ auth, refreshToken, socket }) {
 
       {!loading &&
         updates.length === 0 &&
-        (statusFilter || authorFilter || tagFilter ? (
+        (allUpdates.length === 0 ? (
+          <p className="hint">No updates yet.</p>
+        ) : (
           <div>
             <p className="hint">No updates match your filters.</p>
+
+            <p className="hint">
+              {[
+                statusFilter && `Status: ${statusFilter}`,
+                authorFilter &&
+                  `Author: ${
+                    authors.find(([id]) => id === authorFilter)?.[1] ||
+                    authorFilter
+                  }`,
+                tagFilter && `Tag: ${tagFilter}`,
+              ]
+                .filter(Boolean)
+                .join(", ")}
+            </p>
 
             <button
               type="button"
@@ -363,8 +379,6 @@ export default function Feed({ auth, refreshToken, socket }) {
               Clear filters
             </button>
           </div>
-        ) : (
-          <p className="hint">No updates yet.</p>
         ))}
 
       <div className="update-list">
