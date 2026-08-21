@@ -301,6 +301,15 @@ function exportAsCSV(res, data) {
   return res.send(csvContent);
 }
 
+router.get("/tags", async(req, res) => {
+  try {
+    const tags = await Update.distinct("tags");
+    return res.json({ tags });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch tags" });
+  }
+})
+
 // GET /api/updates/:id
 router.get("/:id", optionalAuth, async (req, res) => {
   if (!isValidObjectId(req.params.id)) {
