@@ -346,7 +346,7 @@ export default function Feed({ auth, refreshToken, socket }) {
           type="text"
           placeholder="Search updates..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)} 
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
 
         {auth && (
@@ -371,7 +371,7 @@ export default function Feed({ auth, refreshToken, socket }) {
 
       {!loading &&
         updates.length === 0 &&
-        (allUpdates.length === 0 ? (
+        (allUpdates.length === 0 && !statusFilter && !authorFilter && !tagFilter && !searchQuery ? (
           <p className="hint">No updates yet.</p>
         ) : (
           <div>
@@ -381,10 +381,9 @@ export default function Feed({ auth, refreshToken, socket }) {
               {[
                 statusFilter && `Status: ${statusFilter}`,
                 authorFilter &&
-                  `Author: ${
-                    authors.find(([id]) => id === authorFilter)?.[1] ||
-                    authorFilter
-                  }`,
+                `Author: ${authors.find(([id]) => id === authorFilter)?.[1] ||
+                authorFilter
+                }`,
                 tagFilter && `Tag: ${tagFilter}`,
               ]
                 .filter(Boolean)
