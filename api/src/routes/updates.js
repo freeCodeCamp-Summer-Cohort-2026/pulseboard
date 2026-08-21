@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Update = require("../models/Update");
 const { STATUS_VALUES, VISIBILITY_VALUES } = require("../models/Update");
 const rateLimit = require("express-rate-limit");
@@ -6,6 +7,8 @@ const { requireAuth, optionalAuth, checkRole } = require("../middleware/auth");
 const SORT_VALUES = ["newest", "oldest", "most-reactions"];
 
 const router = express.Router();
+
+const isValidObjectId = (id) => mongoose.isObjectIdOrHexString(id);
 
 const createUpdateLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -300,6 +303,10 @@ function exportAsCSV(res, data) {
 
 // GET /api/updates/:id
 router.get("/:id", optionalAuth, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: "Invalid update id" });
+  }
+
   try {
     const update = await Update.findById(req.params.id)
       .populate("author", "displayName email")
@@ -321,6 +328,10 @@ router.get("/:id", optionalAuth, async (req, res) => {
 });
 
 router.patch("/:id", requireAuth, async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: "Invalid update id" });
+  }
+
   try {
     const { text, status } = req.body;
 
@@ -384,6 +395,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
 });
 
 router.patch("/:id/pin", requireAuth, checkRole("LEAD"), async (req, res) => {
+  if (!isValidObjectId(req.params.id)) {
+    return res.status(400).json({ error: "Invalid update id" });
+  }
+
   try {
     const { pinned } = req.body;
     const update = await Update.findById(req.params.id);
@@ -406,6 +421,10 @@ router.delete(
   requireAuth,
   checkRole("LEAD", "MEMBER"),
   async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid update id" });
+    }
+
     try {
       const update = await Update.findById(req.params.id);
 
@@ -534,6 +553,10 @@ router.post(
   requireAuth,
   checkRole("LEAD", "MEMBER"),
   async (req, res) => {
+    if (!isValidObjectId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid update id" });
+    }
+
     try {
       const { emoji } = req.body;
 
@@ -586,6 +609,13 @@ router.delete(
   requireAuth,
   checkRole("LEAD", "MEMBER"),
   async (req, res) => {
+    if (
+      !isValidObjectId(req.params.id) ||
+      !isValidObjectId(req.params.reactionId)
+    ) {
+      return res.status(400).json({ error: "Invalid update or reaction id" });
+    }
+
     try {
       const update = await Update.findById(req.params.id);
       if (!update || !isVisibleToRequester(update, req.user)) {

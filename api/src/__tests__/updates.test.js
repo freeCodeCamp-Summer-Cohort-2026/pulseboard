@@ -401,7 +401,6 @@ describe("GET /api/updates", () => {
     expect(res.status).toBe(200);
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].tags[0]).toBe("frontend");
-
   });
 
   it("filters by q", async () => {
@@ -697,6 +696,23 @@ describe("update visibility", () => {
   });
 });
 
+describe("GET /api/updates/:id", () => {
+  it("returns 400 for a malformed update id", async () => {
+    const res = await request(app).get("/api/updates/not-an-object-id");
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid update id");
+  });
+
+  it("returns 404 for a valid but nonexistent update id", async () => {
+    const missingUpdateId = new mongoose.Types.ObjectId().toString();
+    const res = await request(app).get(`/api/updates/${missingUpdateId}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Update not found");
+  });
+});
+
 describe("GET /api/updates/leaderboard", () => {
   it("returns authors sorted by update count with reaction totals", async () => {
     const other = await registerUser({
@@ -815,6 +831,25 @@ describe("GET /api/updates/leaderboard", () => {
 });
 
 describe("DELETE /api/updates/:id", () => {
+  it("returns 400 for a malformed update id", async () => {
+    const res = await request(app)
+      .delete("/api/updates/not-an-object-id")
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid update id");
+  });
+
+  it("returns 404 for a valid but nonexistent update id", async () => {
+    const missingUpdateId = new mongoose.Types.ObjectId().toString();
+    const res = await request(app)
+      .delete(`/api/updates/${missingUpdateId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Update not found");
+  });
+
   it("allows a LEAD to delete any update", async () => {
     // Promote the user directly via the model — the public /register
     // endpoint always creates a MEMBER. The original JWT was issued
@@ -886,6 +921,27 @@ describe("DELETE /api/updates/:id", () => {
 });
 
 describe("POST /api/updates/:id/reactions", () => {
+  it("returns 400 for a malformed update id", async () => {
+    const res = await request(app)
+      .post("/api/updates/not-an-object-id/reactions")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ emoji: "🎉" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid update id");
+  });
+
+  it("returns 404 for a valid but nonexistent update id", async () => {
+    const missingUpdateId = new mongoose.Types.ObjectId().toString();
+    const res = await request(app)
+      .post(`/api/updates/${missingUpdateId}/reactions`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ emoji: "🎉" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Update not found");
+  });
+
   it("adds a reaction to an update", async () => {
     const createRes = await request(app)
       .post("/api/updates")
@@ -953,6 +1009,37 @@ describe("POST /api/updates/:id/reactions", () => {
 });
 
 describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
+  it("returns 400 for a malformed update id", async () => {
+    const validReactionId = new mongoose.Types.ObjectId().toString();
+    const res = await request(app)
+      .delete(`/api/updates/not-an-object-id/reactions/${validReactionId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid update or reaction id");
+  });
+
+  it("returns 400 for a malformed reaction id", async () => {
+    const validUpdateId = new mongoose.Types.ObjectId().toString();
+    const res = await request(app)
+      .delete(`/api/updates/${validUpdateId}/reactions/not-a-reaction-id`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid update or reaction id");
+  });
+
+  it("returns 404 for a valid but nonexistent update id", async () => {
+    const missingUpdateId = new mongoose.Types.ObjectId().toString();
+    const validReactionId = new mongoose.Types.ObjectId().toString();
+    const res = await request(app)
+      .delete(`/api/updates/${missingUpdateId}/reactions/${validReactionId}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Update not found");
+  });
+
   it("deletes a reaction and returns the updated update", async () => {
     const createRes = await request(app)
       .post("/api/updates")
@@ -1044,6 +1131,27 @@ describe("DELETE /api/updates/:id/reactions/:reactionId", () => {
 });
 
 describe("PATCH /api/updates/:id", () => {
+  it("returns 400 for a malformed update id", async () => {
+    const res = await request(app)
+      .patch("/api/updates/not-an-object-id")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Updated text" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid update id");
+  });
+
+  it("returns 404 for a valid but nonexistent update id", async () => {
+    const missingUpdateId = new mongoose.Types.ObjectId().toString();
+    const res = await request(app)
+      .patch(`/api/updates/${missingUpdateId}`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ text: "Updated text" });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Update not found");
+  });
+
   it("rejects text longer than 1000 characters", async () => {
     const createRes = await request(app)
       .post("/api/updates")
@@ -1361,6 +1469,45 @@ describe("PATCH /api/updates/:id", () => {
 });
 
 describe("PATCH /api/updates/:id/pin", () => {
+  it("returns 400 for a malformed update id", async () => {
+    await User.findOneAndUpdate(
+      { email: "author@example.com" },
+      { role: "LEAD" },
+    );
+    const leadLogin = await request(app).post("/api/auth/login").send({
+      email: "author@example.com",
+      password: "password123",
+    });
+
+    const res = await request(app)
+      .patch("/api/updates/not-an-object-id/pin")
+      .set("Authorization", `Bearer ${leadLogin.body.token}`)
+      .send({ pinned: true });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe("Invalid update id");
+  });
+
+  it("returns 404 for a valid but nonexistent update id", async () => {
+    await User.findOneAndUpdate(
+      { email: "author@example.com" },
+      { role: "LEAD" },
+    );
+    const leadLogin = await request(app).post("/api/auth/login").send({
+      email: "author@example.com",
+      password: "password123",
+    });
+    const missingUpdateId = new mongoose.Types.ObjectId().toString();
+
+    const res = await request(app)
+      .patch(`/api/updates/${missingUpdateId}/pin`)
+      .set("Authorization", `Bearer ${leadLogin.body.token}`)
+      .send({ pinned: true });
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toBe("Update not found");
+  });
+
   it("returns 403 when a MEMBER tries to pin an update", async () => {
     const createRes = await request(app)
       .post("/api/updates")
