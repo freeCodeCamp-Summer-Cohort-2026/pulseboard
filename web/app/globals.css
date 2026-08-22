@@ -720,3 +720,27 @@ section {
   border-color: transparent;
   opacity: 0.9;
 }
+
+/* Optimistic reaction styles */
+.reaction-button.pending {
+  opacity: 0.7;
+  animation: pulse 1s infinite;
+}
+
+.reaction-button.pending .reaction-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  margin-left: 2px;
+  font-size: 0.7em;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

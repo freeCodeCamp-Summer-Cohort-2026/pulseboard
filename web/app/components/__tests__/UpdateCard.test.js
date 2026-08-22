@@ -85,7 +85,7 @@ describe("UpdateCard", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
+  
   it("renders the update text and author", () => {
     render(<UpdateCard update={update} auth={null} onUpdated={() => {}} />);
 
@@ -437,7 +437,151 @@ describe("UpdateCard", () => {
 
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
 
-    expect(onUpdated).not.toHaveBeenCalled();
+    expect(onUpdated).not.toHaveBeenCalled();  
+  });
+
+describe("optimistic reactions with rollback", () => {
+  const updateWithNoReactions = {
+    _id: "1",
+    text: "Shipped the login page",
+    status: "done",
+    createdAt: new Date().toISOString(),
+    author: { _id: "u1", displayName: "Amina Yusuf" },
+    reactions: [],
+  };
+
+  const updateWithOwnReaction = {
+    _id: "1",
+    text: "Shipped the login page",
+    status: "done",
+    createdAt: new Date().toISOString(),
+    author: { _id: "u1", displayName: "Amina Yusuf" },
+    reactions: [{ _id: "r1", emoji: "👍", user: { _id: "u1" } }],
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test("rolls back optimistic update when addReaction fails", async () => {
+    addReaction.mockRejectedValueOnce(new Error("Network error"));
+
+    const onUpdated = jest.fn();
+    render(
+      <UpdateCard
+        update={updateWithNoReactions}
+        auth={auth}
+        onUpdated={onUpdated}
+      />
+    );
+
+    const reactionButton = screen.getByRole("button", { name: /👍 0/i });
+    expect(reactionButton).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(reactionButton);
+
+    expect(onUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reactions: expect.arrayContaining([
+          expect.objectContaining({ emoji: "👍", user: { _id: "u1" } }),
+        ]),
+      })
+    );
+
+    await waitFor(() => {
+      expect(addReaction).toHaveBeenCalledWith(
+        { updateId: "1", emoji: "👍" },
+        "test-token",
+      );
+    });
+    
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /👍 0/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /👍 0/i })).not.toBeDisabled();
+    });
+
+    expect(screen.getByText("Network error")).toBeInTheDocument();
+  });
+
+  test("rolls back optimistic update when removeReaction fails", async () => {
+    removeReaction.mockRejectedValueOnce(new Error("Network error"));
+
+    const onUpdated = jest.fn();
+    render(
+      <UpdateCard
+        update={updateWithOwnReaction}
+        auth={auth}
+        onUpdated={onUpdated}
+      />
+    );
+
+    const reactionButton = screen.getByRole("button", { name: /👍 1/i });
+    expect(reactionButton).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(reactionButton);
+
+    expect(onUpdated).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reactions: expect.not.arrayContaining([
+          expect.objectContaining({ emoji: "👍", user: { _id: "u1" } }),
+        ]),
+      })
+    );
+
+    await waitFor(() => {
+      expect(removeReaction).toHaveBeenCalledWith(
+        { updateId: "1", reactionId: "r1" },
+        "test-token",
+      );
+    });
+    
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /👍 1/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /👍 1/i })).not.toBeDisabled();
+    });
+
+    expect(screen.getByText("Network error")).toBeInTheDocument();
+  });
+
+  test("clears pending state on successful addReaction", async () => {
+    const updatedUpdate = {
+      ...updateWithNoReactions,
+      reactions: [
+        ...updateWithNoReactions.reactions,
+        { _id: "r2", emoji: "👍", user: { _id: "u1" } },
+      ],
+    };
+    addReaction.mockResolvedValueOnce({ update: updatedUpdate });    
+    let currentUpdate = updateWithNoReactions;      
+    const mockOnUpdated = (newUpdate) => {
+      currentUpdate = newUpdate;
+    };
+
+    const { rerender } = render(
+      <UpdateCard
+        update={currentUpdate}
+        auth={auth}
+        onUpdated={mockOnUpdated}
+      />
+    );
+    
+    fireEvent.click(screen.getByRole("button", { name: /👍 0/i }));    
+    rerender(
+      <UpdateCard
+        update={currentUpdate}
+        auth={auth}
+        onUpdated={mockOnUpdated}
+      />
+    );
+    
+    await waitFor(() => {
+      expect(addReaction).toHaveBeenCalled();
+    });
+    
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /👍 1/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /👍 1/i })).not.toBeDisabled();
+    });
   });
 
   it("Copies the link to the correct item when the copy link button is pressed", async () => {
@@ -456,3 +600,5 @@ describe("UpdateCard", () => {
     });
   });
 });
+});
+
