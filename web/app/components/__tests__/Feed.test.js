@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import Feed from "../Feed";
 import { listUpdates } from "@/lib/api";
 
@@ -475,6 +475,74 @@ describe("Feed - jump to top button", () => {
     expect(window.scrollTo).toHaveBeenCalledWith({
       top: 0,
       behavior: "smooth",
+    });
+  });
+});
+
+describe("Feed - text search with debounce", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    listUpdates.mockResolvedValue({ updates: [], pagination: { hasNextPage: false } });
+  });
+
+  afterEach(()=> {
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
+    jest.clearAllMocks();
+  })
+
+  it("waits for the 300ms debounce before calling the API", async () => {
+    render(<Feed auth={null} refreshToken={0} />);
+
+    const searchInput = screen.getByPlaceholderText("Search updates...");
+
+    listUpdates.mockClear();
+
+    fireEvent.change(searchInput, {target: {value: "dep"}});
+    fireEvent.change(searchInput, {target: {value: "deploy"}});
+
+    expect(listUpdates).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(listUpdates).toHaveBeenCalledTimes(1);
+    expect(listUpdates).toHaveBeenLastCalledWith({
+      status: undefined,
+      author: undefined,
+      sort: "newest",
+      q: "deploy"
+    });
+  });
+
+  it("clears the search input and fetch again when Clear filters is clicked", async () => {
+    render(<Feed auth={null} refreshToken={0} />);
+
+    const searchInput = screen.getByPlaceholderText("Search updates...");
+
+    fireEvent.change(searchInput, {target: {value: "deploy"}});
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    listUpdates.mockClear();
+
+    const clearButton = await screen.findByRole("button", {name: "Clear filters"});
+
+    fireEvent.click(clearButton);
+
+    expect(searchInput.value).toBe("");
+
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+
+    expect(listUpdates).toHaveBeenLastCalledWith({
+      status: undefined,
+      author: undefined,
+      sort: "newest",
+      q: undefined,
     });
   });
 });

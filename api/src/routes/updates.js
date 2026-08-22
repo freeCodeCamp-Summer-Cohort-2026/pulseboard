@@ -35,7 +35,7 @@ router.get("/", optionalAuth, async (req, res) => {
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
     const limit = Math.min(
       Math.max(parseInt(req.query.limit, 10) || 10, 1),
-      50,
+      50
     );
     const filter = {};
 

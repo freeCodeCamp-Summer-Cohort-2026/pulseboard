@@ -14,6 +14,8 @@ export default function Feed({ auth, refreshToken, socket }) {
   const [authorFilter, setAuthorFilter] = useState("");
   const [tagFilter, setTagFilter] = useState("");
   const [sortOrder, setSortOrder] = useState("newest");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +59,11 @@ export default function Feed({ auth, refreshToken, socket }) {
   }, [socket]);
 
   useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     let cancelled = false;
 
     setLoading(true);
@@ -67,6 +74,7 @@ export default function Feed({ auth, refreshToken, socket }) {
       status: statusFilter || undefined,
       author: authorFilter || undefined,
       sort: sortOrder,
+      q: debouncedSearch.trim() || undefined,
     };
 
     if (tagFilter) {
@@ -98,7 +106,14 @@ export default function Feed({ auth, refreshToken, socket }) {
     return () => {
       cancelled = true;
     };
-  }, [statusFilter, authorFilter, tagFilter, sortOrder, refreshToken]);
+  }, [
+    statusFilter,
+    authorFilter,
+    tagFilter,
+    sortOrder,
+    debouncedSearch,
+    refreshToken,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +151,7 @@ export default function Feed({ auth, refreshToken, socket }) {
         status: statusFilter || undefined,
         author: authorFilter || undefined,
         sort: sortOrder,
+        q: debouncedSearch.trim() || undefined,
         page: nextPage,
         limit: LIMIT,
       };
@@ -314,19 +330,6 @@ export default function Feed({ auth, refreshToken, socket }) {
           ))}
         </select>
 
-        {auth && (
-          <div>
-            <input
-              id="show-updates-checkbox"
-              type="checkbox"
-              checked={showMyUpdates}
-              onChange={handleShowMyUpdates}
-            />
-
-            <label htmlFor="show-updates-checkbox">Show My Updates</label>
-          </div>
-        )}
-
         <select
           value={sortOrder}
           onChange={(e) => setSortOrder(e.target.value)}
@@ -339,6 +342,27 @@ export default function Feed({ auth, refreshToken, socket }) {
         <button type="button" onClick={handleRefresh} disabled={refreshing}>
           {refreshing ? "Refreshing..." : "Refresh"}
         </button>
+        <input
+          type="text"
+          placeholder="Search updates..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+
+        {auth && (
+          <div>
+            <input
+              id="show-updates-checkbox"
+              type="checkbox"
+              checked={showMyUpdates}
+              onChange={handleShowMyUpdates}
+            />
+
+            <label htmlFor="show-updates-checkbox">
+              Show My Updates
+            </label>
+          </div>
+        )}
       </div>
 
       {error && <p className="error">{error}</p>}
@@ -347,7 +371,7 @@ export default function Feed({ auth, refreshToken, socket }) {
 
       {!loading &&
         updates.length === 0 &&
-        (allUpdates.length === 0 ? (
+        (allUpdates.length === 0 && !statusFilter && !authorFilter && !tagFilter && !searchQuery ? (
           <p className="hint">No updates yet.</p>
         ) : (
           <div>
@@ -357,10 +381,9 @@ export default function Feed({ auth, refreshToken, socket }) {
               {[
                 statusFilter && `Status: ${statusFilter}`,
                 authorFilter &&
-                  `Author: ${
-                    authors.find(([id]) => id === authorFilter)?.[1] ||
-                    authorFilter
-                  }`,
+                `Author: ${authors.find(([id]) => id === authorFilter)?.[1] ||
+                authorFilter
+                }`,
                 tagFilter && `Tag: ${tagFilter}`,
               ]
                 .filter(Boolean)
@@ -373,6 +396,7 @@ export default function Feed({ auth, refreshToken, socket }) {
                 setStatusFilter("");
                 setAuthorFilter("");
                 setTagFilter("");
+                setSearchQuery("");
                 setShowMyUpdates(false);
               }}
             >

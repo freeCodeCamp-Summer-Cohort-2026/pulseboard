@@ -242,7 +242,8 @@ section {
   margin-bottom: 1rem;
 }
 
-.filter-bar select {
+.filter-bar select,
+.filter-bar input {
   padding: 0.4rem;
   border-radius: 4px;
   border: 1px solid var(--control-border);
@@ -455,6 +456,7 @@ section {
 .update-form select:focus-visible,
 .update-form button:focus-visible,
 .filter-bar select:focus-visible,
+.filter-bar input:focus-visible,
 .reaction-button:focus-visible,
 .edit-field select:focus-visible,
 .edit-form textarea:focus-visible,
