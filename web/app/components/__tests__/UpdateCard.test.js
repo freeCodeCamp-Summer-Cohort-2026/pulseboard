@@ -85,7 +85,6 @@ describe("UpdateCard", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
   
   it("renders the update text and author", () => {
     render(<UpdateCard update={update} auth={null} onUpdated={() => {}} />);
@@ -438,12 +437,8 @@ describe("UpdateCard", () => {
 
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
 
-    expect(onUpdated).not.toHaveBeenCalled();
-  
+    expect(onUpdated).not.toHaveBeenCalled();  
   });
-
-
-// OPTIMISTIC REACTIONS WITH ROLLBACK TESTS
 
 describe("optimistic reactions with rollback", () => {
   const updateWithNoReactions = {
@@ -499,8 +494,7 @@ describe("optimistic reactions with rollback", () => {
         "test-token",
       );
     });
-
-    // Verify UI reverted to pre-optimistic state (0 reactions)
+    
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /👍 0/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /👍 0/i })).not.toBeDisabled();
@@ -540,8 +534,7 @@ describe("optimistic reactions with rollback", () => {
         "test-token",
       );
     });
-
-    // Verify UI reverted to pre-optimistic state (1 reaction restored)
+    
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /👍 1/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /👍 1/i })).not.toBeDisabled();
@@ -558,12 +551,8 @@ describe("optimistic reactions with rollback", () => {
         { _id: "r2", emoji: "👍", user: { _id: "u1" } },
       ],
     };
-    addReaction.mockResolvedValueOnce({ update: updatedUpdate });
-
-    // Track the current update state
-    let currentUpdate = updateWithNoReactions;
-    
-    // onUpdated updates the local state
+    addReaction.mockResolvedValueOnce({ update: updatedUpdate });    
+    let currentUpdate = updateWithNoReactions;      
     const mockOnUpdated = (newUpdate) => {
       currentUpdate = newUpdate;
     };
@@ -575,11 +564,8 @@ describe("optimistic reactions with rollback", () => {
         onUpdated={mockOnUpdated}
       />
     );
-
-    // Click the reaction (should be 0 count initially)
-    fireEvent.click(screen.getByRole("button", { name: /👍 0/i }));
-
-    // Re-render with the updated state
+    
+    fireEvent.click(screen.getByRole("button", { name: /👍 0/i }));    
     rerender(
       <UpdateCard
         update={currentUpdate}
@@ -587,13 +573,11 @@ describe("optimistic reactions with rollback", () => {
         onUpdated={mockOnUpdated}
       />
     );
-
-    // Wait for the API call
+    
     await waitFor(() => {
       expect(addReaction).toHaveBeenCalled();
     });
-
-    // Now verify the button shows 1
+    
     await waitFor(() => {
       expect(screen.getByRole("button", { name: /👍 1/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /👍 1/i })).not.toBeDisabled();

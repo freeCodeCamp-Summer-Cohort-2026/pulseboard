@@ -27,10 +27,8 @@ const MS_PER_MINUTE = 60 * 1000;
 const MS_PER_HOUR = 60 * MS_PER_MINUTE;
 const MS_PER_DAY = 24 * MS_PER_HOUR;
 
-// adding optimistic update function
 function createOptimisticUpdate(update, emoji, userId, isAdding) {
-  const reactions = [...(update.reactions || [])];
-  // Adding reaction optimistically with temporary ID
+  const reactions = [...(update.reactions || [])];  
   if (isAdding) {    
     reactions.push({
       emoji,
@@ -156,8 +154,7 @@ async function handleReactionToggle(emoji) {
 
   const previousUpdate = update;
   const isAdding = !myReaction;
-
-  // Optimistic update
+  
   const optimisticUpdate = createOptimisticUpdate(
     previousUpdate,
     emoji,
