@@ -14,7 +14,7 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
 
- if (auth) {
+  if (auth) {
     return (
       <div className="auth-panel">
         <span>
@@ -93,9 +93,7 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
         if (result.devResetToken) {
           setResetToken(result.devResetToken);
           setMode("reset");
-          setSuccess(
-            "Reset token generated. Enter a new password below.",
-          );
+          setSuccess("Reset token generated. Enter a new password below.");
         } else {
           setSuccess(
             result.message ||
@@ -122,9 +120,7 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
         setResetToken("");
         setMode("login");
 
-        setSuccess(
-          "Password reset successfully. You can now log in.",
-        );
+        setSuccess("Password reset successfully. You can now log in.");
       }
     } catch (err) {
       setError(err.message);
@@ -138,10 +134,7 @@ export default function AuthPanel({ auth, onSignIn, onSignOut }) {
       <form className="auth-panel" onSubmit={handleSubmit}>
         <h3>Reset your password</h3>
 
-        <p>
-          Enter your email address to generate a password
-          reset token.
-        </p>
+        <p>Enter your email address to generate a password reset token.</p>
 
         <input
           type="email"

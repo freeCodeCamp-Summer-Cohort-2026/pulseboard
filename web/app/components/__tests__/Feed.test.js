@@ -1,9 +1,10 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Feed from "../Feed";
-import { listUpdates } from "@/lib/api";
+import { listUpdates, getStreak } from "@/lib/api";
 
 jest.mock("@/lib/api", () => ({
   listUpdates: jest.fn(),
+  getStreak: jest.fn(),
 }));
 
 jest.mock("../UpdateCard", () => {
@@ -22,6 +23,7 @@ describe("Feed - handleShowMyUpdates", () => {
 
   beforeEach(() => {
     listUpdates.mockResolvedValue({ updates: [] });
+    getStreak.mockResolvedValue({ streak: 0 });
   });
 
   afterEach(() => {

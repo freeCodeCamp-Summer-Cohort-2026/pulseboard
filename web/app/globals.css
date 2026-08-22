@@ -24,6 +24,8 @@
   --reaction-button-text: #1a1a2e;
   --focus-indicator: #4b5efc;
   --mention-text: #4b5efc;
+  --streak-text: #c2410c;
+  --streak-bg: rgba(249, 115, 22, 0.14);
 }
 
 :root[data-theme="dark"] {
@@ -339,11 +341,6 @@ section {
   color: var(--text-hint);
   font-size: 18px;
   font-weight: 600;
-}
-
-.author {
-  font-weight: bold;
-  font-size: 1rem;
 }
 
 .initials-badge {
@@ -667,14 +664,34 @@ section {
   position: fixed;
   bottom: 2rem;
   right: 2rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.6rem 1rem;
   border: none;
   border-radius: 999px;
   background: var(--primary-button-bg);
   color: var(--primary-button-text);
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   z-index: 50;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.jump-to-top:hover {
+  background: var(--primary-button-bg-hover, #3a4ce0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
+}
+
+.jump-to-top:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
 }
 
 .jump-to-top:focus-visible {
@@ -719,4 +736,33 @@ section {
   cursor: default;
   border-color: transparent;
   opacity: 0.9;
+}
+
+.author {
+  display: grid;
+  grid-template-columns: 1fr auto; /* name | flexible gap | streak */
+  align-items: baseline;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.streak {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  gap: 0.25rem;
+  padding: 0.15rem 0.5rem 0.15rem 0.3rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--streak-text);
+  background: var(--streak-bg);
+  white-space: nowrap;
+  margin-left: 1rem;
+}
+
+.streak svg {
+  flex-shrink: 0;
+  color: var(--streak-text);
 }

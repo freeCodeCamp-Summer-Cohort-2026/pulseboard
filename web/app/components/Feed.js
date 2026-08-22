@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { listUpdates } from "@/lib/api";
+import { listUpdates, getStreak } from "@/lib/api";
 import UpdateCard from "./UpdateCard";
+import { MoveUp } from "lucide-react";
 
 const STATUS_OPTIONS = ["on-track", "blocked", "done"];
 
@@ -28,6 +29,32 @@ export default function Feed({ auth, refreshToken, socket }) {
   const [showMyUpdates, setShowMyUpdates] = useState(false);
   const [showJumpToTop, setShowJumpToTop] = useState(false);
 
+  const [streak, setStreak] = useState(new Map());
+
+  const authors = useMemo(() => {
+    const map = new Map();
+
+    for (const update of allUpdates) {
+      if (update.author?._id) {
+        map.set(update.author._id, update.author.displayName);
+      }
+    }
+
+    return Array.from(map.entries());
+  }, [allUpdates]);
+
+  const tags = useMemo(() => {
+    const tagsArray = [];
+
+    for (const update of allUpdates) {
+      tagsArray.push(...(update.tags ?? []));
+    }
+
+    return [...new Set(tagsArray)];
+  }, [allUpdates]);
+
+  const authorIds = useMemo(() => authors.map(([id]) => id), [authors]);
+
   // Jump-to-top button
   useEffect(() => {
     function handleScroll() {
@@ -42,7 +69,33 @@ export default function Feed({ auth, refreshToken, socket }) {
     };
   }, []);
 
-  // Load the current feed
+  useEffect(() => {
+    if (authorIds.length === 0) return;
+
+    let cancelled = false;
+
+    async function fetchAllStreaks() {
+      const results = await Promise.all(
+        authorIds.map(async (id) => {
+          const streak = await getStreak(id, auth?.token);
+          return [id, streak?.streak];
+        }),
+      );
+
+      if (!cancelled) {
+        setStreak(new Map(results));
+      }
+    }
+    try {
+      fetchAllStreaks();
+    } catch (err) {
+      return { message: err ? err : "An unknown error occured" };
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [authorIds, auth?.token]);
+
   //* Attach and detach event handlers for websocket (if initialized)
   useEffect(() => {
     if (!socket) return;
@@ -155,28 +208,6 @@ export default function Feed({ auth, refreshToken, socket }) {
       setLoadingMore(false);
     }
   }
-
-  const authors = useMemo(() => {
-    const map = new Map();
-
-    for (const update of allUpdates) {
-      if (update.author?._id) {
-        map.set(update.author._id, update.author.displayName);
-      }
-    }
-
-    return Array.from(map.entries());
-  }, [allUpdates]);
-
-  const tags = useMemo(() => {
-    const tagsArray = [];
-
-    for (const update of allUpdates) {
-      tagsArray.push(...(update.tags ?? []));
-    }
-
-    return [...new Set(tagsArray)];
-  }, [allUpdates]);
 
   //* Handler for incoming POST:update event on websocket
   function handleRcvdUpdate(update) {
@@ -389,6 +420,7 @@ export default function Feed({ auth, refreshToken, socket }) {
             auth={auth}
             onUpdated={handleUpdated}
             onDeleted={handleDeleted}
+            streak={streak.get(update?.author?._id)}
           />
         ))}
       </div>
@@ -406,7 +438,8 @@ export default function Feed({ auth, refreshToken, socket }) {
           onClick={handleJumpToTop}
           aria-label="Jump to top"
         >
-          ↑ Top
+          <MoveUp size={16} strokeWidth={3} />
+          <span>Top</span>
         </button>
       )}
     </div>

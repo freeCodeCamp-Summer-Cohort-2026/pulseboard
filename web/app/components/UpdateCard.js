@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CircleArrowRight, CircleCheck, CircleX, Flame } from "lucide-react";
+
 import {
   addReaction,
   deleteUpdate,
@@ -18,9 +20,9 @@ const STATUS_LABELS = {
 };
 
 const STATUS_ICONS = {
-  "on-track": "→",
-  blocked: "✕",
-  done: "✓",
+  "on-track": CircleArrowRight,
+  blocked: CircleX,
+  done: CircleCheck,
 };
 
 const MS_PER_MINUTE = 60 * 1000;
@@ -99,7 +101,13 @@ export function renderWithMentions(text) {
   return nodes;
 }
 
-export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
+export default function UpdateCard({
+  update,
+  auth,
+  onUpdated,
+  onDeleted,
+  streak,
+}) {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(update.text);
@@ -267,9 +275,19 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
             </svg>
           </span>
           <div className="update-meta">
-            <span className="author">
-              {update.author?.displayName || "Unknown"}
-            </span>
+            <div className="author">
+              <span>{update.author?.displayName || "Unknown"}</span>
+              {streak > 0 && (
+                <span
+                  className="streak"
+                  aria-label={`${streak}-day streak`}
+                  title={`${streak}-day posting streak`}
+                >
+                  <Flame size={14} strokeWidth={2.5} aria-hidden="true" />
+                  {streak}
+                </span>
+              )}
+            </div>
             <div className="update-meta-subinfo">
               <time dateTime={update.createdAt}>
                 {formatRelativeTime(update.createdAt)}
@@ -300,7 +318,10 @@ export default function UpdateCard({ update, auth, onUpdated, onDeleted }) {
         ) : (
           <span className={`status-badge status-${update.status}`}>
             <span className="status-icon" aria-hidden="true">
-              {STATUS_ICONS[update.status]}
+              {(() => {
+                const Icon = STATUS_ICONS[update.status];
+                return Icon ? <Icon size={14} strokeWidth={2.5} /> : null;
+              })()}
             </span>
             {STATUS_LABELS[update.status] || update.status}
           </span>

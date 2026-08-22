@@ -4,6 +4,7 @@ const User = require("../models/User");
 const Update = require("../models/Update");
 const mongoose = require("mongoose");
 const { setupTestDB, teardownTestDB, clearTestDB } = require("./setup");
+const { createUpdateOnDay } = require("../utils/stub");
 
 const app = createApp();
 
@@ -1665,4 +1666,20 @@ describe("PATCH /api/updates/:id/pin", () => {
 
     expect(pinRes.status).toBe(404);
   });
+});
+
+test("GET /api/users/:id/streak returns correct streak", async () => {
+  const user = await User.create({
+    email: "a@test.com",
+    displayName: "A",
+    passwordHash: "x",
+  });
+
+  await createUpdateOnDay(user._id, 0); // today
+  await createUpdateOnDay(user._id, 1); // yesterday
+  await createUpdateOnDay(user._id, 2); // day before
+
+  const res = await request(app).get(`/api/users/${user._id}/streak`);
+  expect(res.status).toBe(200);
+  expect(res.body.streak).toBe(3);
 });

@@ -130,3 +130,7 @@ export function togglePin({ updateId, pinned }, token) {
     token,
   });
 }
+
+export function getStreak(userId, token) {
+  return request(`/api/users/${userId}/streak`, { token });
+}

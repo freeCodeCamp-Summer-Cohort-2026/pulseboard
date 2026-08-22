@@ -8,12 +8,7 @@ jest.mock("@/lib/api", () => ({
   resetPassword: jest.fn(),
 }));
 
-import {
-  login,
-  register,
-  forgotPassword,
-  resetPassword,
-} from "@/lib/api";
+import { login, register, forgotPassword, resetPassword } from "@/lib/api";
 
 describe("AuthPanel - Password Confirmation", () => {
   beforeEach(() => {
@@ -21,13 +16,7 @@ describe("AuthPanel - Password Confirmation", () => {
   });
 
   test("shows error and does not call API when passwords do not match", async () => {
-    render(
-      <AuthPanel
-        auth={null}
-        onSignIn={() => {}}
-        onSignOut={() => {}}
-      />,
-    );
+    render(<AuthPanel auth={null} onSignIn={() => {}} onSignOut={() => {}} />);
 
     fireEvent.click(screen.getByText("Register"));
 
@@ -50,9 +39,7 @@ describe("AuthPanel - Password Confirmation", () => {
     fireEvent.click(screen.getByText("Create account"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Passwords do not match"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
     });
 
     expect(register).not.toHaveBeenCalled();
@@ -63,13 +50,7 @@ describe("AuthPanel - Password Confirmation", () => {
       user: { displayName: "Test User" },
     });
 
-    render(
-      <AuthPanel
-        auth={null}
-        onSignIn={() => {}}
-        onSignOut={() => {}}
-      />,
-    );
+    render(<AuthPanel auth={null} onSignIn={() => {}} onSignOut={() => {}} />);
 
     fireEvent.click(screen.getByText("Register"));
 
@@ -101,34 +82,21 @@ describe("AuthPanel - Password Confirmation", () => {
   });
 });
 
-
 describe("AuthPanel - Forgot Password", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   test("shows forgot password form from login", () => {
-    render(
-      <AuthPanel
-        auth={null}
-        onSignIn={() => {}}
-        onSignOut={() => {}}
-      />,
-    );
+    render(<AuthPanel auth={null} onSignIn={() => {}} onSignOut={() => {}} />);
 
     fireEvent.click(screen.getByText("Forgot password?"));
 
-    expect(
-      screen.getByText("Reset your password"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Reset your password")).toBeInTheDocument();
 
-    expect(
-      screen.getByPlaceholderText("Email"),
-    ).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Email")).toBeInTheDocument();
 
-    expect(
-      screen.getByText("Generate reset token"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Generate reset token")).toBeInTheDocument();
   });
 
   test("calls forgot password API with email", async () => {
@@ -137,13 +105,7 @@ describe("AuthPanel - Forgot Password", () => {
       devResetToken: "test-reset-token",
     });
 
-    render(
-      <AuthPanel
-        auth={null}
-        onSignIn={() => {}}
-        onSignOut={() => {}}
-      />,
-    );
+    render(<AuthPanel auth={null} onSignIn={() => {}} onSignOut={() => {}} />);
 
     fireEvent.click(screen.getByText("Forgot password?"));
 
@@ -166,13 +128,7 @@ describe("AuthPanel - Forgot Password", () => {
       devResetToken: "test-reset-token",
     });
 
-    render(
-      <AuthPanel
-        auth={null}
-        onSignIn={() => {}}
-        onSignOut={() => {}}
-      />,
-    );
+    render(<AuthPanel auth={null} onSignIn={() => {}} onSignOut={() => {}} />);
 
     fireEvent.click(screen.getByText("Forgot password?"));
 
@@ -183,17 +139,14 @@ describe("AuthPanel - Forgot Password", () => {
     fireEvent.click(screen.getByText("Generate reset token"));
 
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText("Reset token"),
-      ).toHaveValue("test-reset-token");
+      expect(screen.getByPlaceholderText("Reset token")).toHaveValue(
+        "test-reset-token",
+      );
     });
 
-    expect(
-      screen.getByText("Reset password"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Reset password")).toBeInTheDocument();
   });
 });
-
 
 describe("AuthPanel - Reset Password", () => {
   beforeEach(() => {
@@ -206,13 +159,7 @@ describe("AuthPanel - Reset Password", () => {
       devResetToken: "test-reset-token",
     });
 
-    render(
-      <AuthPanel
-        auth={null}
-        onSignIn={() => {}}
-        onSignOut={() => {}}
-      />,
-    );
+    render(<AuthPanel auth={null} onSignIn={() => {}} onSignOut={() => {}} />);
 
     fireEvent.click(screen.getByText("Forgot password?"));
 
@@ -223,9 +170,9 @@ describe("AuthPanel - Reset Password", () => {
     fireEvent.click(screen.getByText("Generate reset token"));
 
     await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText("Reset token"),
-      ).toHaveValue("test-reset-token");
+      expect(screen.getByPlaceholderText("Reset token")).toHaveValue(
+        "test-reset-token",
+      );
     });
   }
 
@@ -240,12 +187,9 @@ describe("AuthPanel - Reset Password", () => {
       target: { value: "newpassword123" },
     });
 
-    fireEvent.change(
-      screen.getByPlaceholderText("Confirm new password"),
-      {
-        target: { value: "newpassword123" },
-      },
-    );
+    fireEvent.change(screen.getByPlaceholderText("Confirm new password"), {
+      target: { value: "newpassword123" },
+    });
 
     fireEvent.click(screen.getByText("Reset password"));
 
@@ -264,19 +208,14 @@ describe("AuthPanel - Reset Password", () => {
       target: { value: "newpassword123" },
     });
 
-    fireEvent.change(
-      screen.getByPlaceholderText("Confirm new password"),
-      {
-        target: { value: "differentpassword123" },
-      },
-    );
+    fireEvent.change(screen.getByPlaceholderText("Confirm new password"), {
+      target: { value: "differentpassword123" },
+    });
 
     fireEvent.click(screen.getByText("Reset password"));
 
     await waitFor(() => {
-      expect(
-        screen.getByText("Passwords do not match"),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
     });
 
     expect(resetPassword).not.toHaveBeenCalled();
@@ -293,33 +232,22 @@ describe("AuthPanel - Reset Password", () => {
       target: { value: "newpassword123" },
     });
 
-    fireEvent.change(
-      screen.getByPlaceholderText("Confirm new password"),
-      {
-        target: { value: "newpassword123" },
-      },
-    );
+    fireEvent.change(screen.getByPlaceholderText("Confirm new password"), {
+      target: { value: "newpassword123" },
+    });
 
     fireEvent.click(screen.getByText("Reset password"));
 
-await waitFor(() => {
-  expect(
-    screen.getByText(
-      "Password reset successfully. You can now log in.",
-    ),
-  ).toBeInTheDocument();
-});
+    await waitFor(() => {
+      expect(
+        screen.getByText("Password reset successfully. You can now log in."),
+      ).toBeInTheDocument();
+    });
 
-expect(
-  screen.getByPlaceholderText("Email"),
-).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Email")).toBeInTheDocument();
 
-expect(
-  screen.getByPlaceholderText("Password"),
-).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Password")).toBeInTheDocument();
 
-expect(
-  screen.getByText("Forgot password?"),
-).toBeInTheDocument();
+    expect(screen.getByText("Forgot password?")).toBeInTheDocument();
   });
 });
