@@ -100,16 +100,16 @@ router.get("/", optionalAuth, async (req, res) => {
       ]);
 
       await Update.populate(updates, [
-        { path: "author", select: "displayName email" },
-        { path: "reactions.user", select: "displayName email" },
+        { path: "author", select: "displayName" },
+        { path: "reactions.user", select: "displayName" },
       ]);
     } else {
       updates = await Update.find(filter)
         .sort({ pinned: -1, createdAt: sortDirection })
         .skip((page - 1) * limit)
         .limit(limit)
-        .populate("author", "displayName email")
-        .populate("reactions.user", "displayName email");
+        .populate("author", "displayName")
+        .populate("reactions.user", "displayName");
     }
     const total = await Update.countDocuments(filter);
     const hasNextPage = page * limit < total;
@@ -179,7 +179,6 @@ router.get("/leaderboard", async (req, res) => {
           author: {
             _id: "$author._id",
             displayName: "$author.displayName",
-            email: "$author.email",
           },
           updateCount: 1,
           reactionCount: 1,
@@ -234,7 +233,7 @@ router.get("/export", async (req, res) => {
         $gte: startDate,
         $lte: endDate,
       },
-    }).populate("author", "displayName email");
+    }).populate("author", "displayName");
 
     // Format the data for export
     const exportData = updates.map((update) => ({
@@ -309,8 +308,8 @@ router.get("/:id", optionalAuth, async (req, res) => {
 
   try {
     const update = await Update.findById(req.params.id)
-      .populate("author", "displayName email")
-      .populate("reactions.user", "displayName email");
+      .populate("author", "displayName")
+      .populate("reactions.user", "displayName");
 
     if (!update) {
       return res.status(404).json({ error: "Update not found" });
@@ -384,9 +383,10 @@ router.patch("/:id", requireAuth, async (req, res) => {
     await update.save();
 
     const populated = await update.populate([
-      { path: "author", select: "displayName email" },
-      { path: "reactions.user", select: "displayName email" },
+      { path: "author", select: "displayName" },
+      { path: "reactions.user", select: "displayName" },
     ]);
+
 
     return res.json({ update: populated });
   } catch (err) {
@@ -408,7 +408,8 @@ router.patch("/:id/pin", requireAuth, checkRole("LEAD"), async (req, res) => {
     update.pinned = pinned;
     await update.save();
 
-    const populated = await update.populate("author", "displayName email");
+    const populated = await update.populate("author", "displayName");
+
 
     return res.status(200).json({ update: populated });
   } catch (err) {
@@ -532,8 +533,8 @@ router.post(
       });
 
       const populated = await update.populate([
-        { path: "author", select: "displayName email" },
-        { path: "reactions.user", select: "displayName email" },
+        { path: "author", select: "displayName" },
+        { path: "reactions.user", select: "displayName" },
       ]);
 
       //* Broadcast event of post being made
@@ -589,8 +590,8 @@ router.post(
       await update.save();
 
       const populated = await update.populate([
-        { path: "author", select: "displayName email" },
-        { path: "reactions.user", select: "displayName email" },
+        { path: "author", select: "displayName" },
+        { path: "reactions.user", select: "displayName" },
       ]);
 
       const io = req.app.get("io");
@@ -637,8 +638,8 @@ router.delete(
       await update.save();
 
       const populated = await update.populate([
-        { path: "author", select: "displayName email" },
-        { path: "reactions.user", select: "displayName email" },
+        { path: "author", select: "displayName" },
+        { path: "reactions.user", select: "displayName" },
       ]);
 
       return res.json({ update: populated });
