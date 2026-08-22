@@ -186,7 +186,6 @@ describe("UpdateForm saving submissions", () => {
     render(<UpdateForm auth={auth} onPosted={onPosted} />);
 
     const textarea = screen.getByPlaceholderText(/what's your status today/i);
-    const select = screen.getByRole("combobox");
     const button = screen.getByRole("button", { name: /post update/i });
 
     fireEvent.change(textarea, {
@@ -200,7 +199,7 @@ describe("UpdateForm saving submissions", () => {
     });
 
     expect(localStorage.getItem("queuedMessages")).toMatch(
-      /\[{\"id\":\"test\d+\",\"text\":\"test\",\"status\":\"on-track\",\"tags\":\[.*\]}\]/,
+      /\[{\"id\":\d+,\"text\":\"test\",\"status\":\"on-track\",\"tags\":\[.*\]}\]/,
     );
   });
 
@@ -218,7 +217,6 @@ describe("UpdateForm saving submissions", () => {
     render(<UpdateForm auth={auth} onPosted={onPosted} />);
 
     const textarea = screen.getByPlaceholderText(/what's your status today/i);
-    const select = screen.getByRole("combobox");
     const button = screen.getByRole("button", { name: /post update/i });
 
     fireEvent.change(textarea, {
@@ -232,8 +230,81 @@ describe("UpdateForm saving submissions", () => {
     });
 
     expect(localStorage.getItem("queuedMessages")).toMatch(
-      /\[{\"id\":\"test\d+\",\"text\":\"test\",\"status\":\"on-track\",\"tags\":\[.*\]}\]/,
+      /\[{\"id\":\d+,\"text\":\"test\",\"status\":\"on-track\",\"tags\":\[.*\]}\]/,
     );
+  });
+
+  it("checks if multiple similar queued submisisons receive unique IDs", async () => {
+    const testRepeats = 100;
+    let rejectRequest = new TypeError("Failed to fetch");
+
+    createUpdate.mockImplementation(() => {
+      return new Promise((resolve, reject) => {
+        reject(rejectRequest);
+      });
+    });
+
+    const onPosted = jest.fn();
+
+    render(<UpdateForm auth={auth} onPosted={onPosted} />);
+
+    const textarea = screen.getByPlaceholderText(/what's your status today/i);
+    const button = screen.getByRole("button", { name: /post update/i });
+
+    for(let n = 0; n < testRepeats; n++) {
+      fireEvent.change(textarea, {
+        target: { value: "ID uniqueness testing." },
+      });
+
+      fireEvent.click(button);
+
+      await waitFor(() => {
+        expect(button).not.toBeDisabled();
+      });
+    }
+
+    const localStorageItemIds = JSON.parse(
+      localStorage.getItem("queuedMessages")
+    ).map((Item) => Item.id);
+    const localStorageItemIdSet = new Set(localStorageItemIds);
+    const localStorageUniqueItemIds = [...localStorageItemIdSet];
+
+    expect(localStorageUniqueItemIds).toHaveLength(testRepeats);
+  });
+
+  it("checks if queued submissions persist across reloads", async () => {
+    let rejectRequest = new TypeError("Failed to fetch");
+
+    createUpdate.mockImplementation(() => {
+      return new Promise((resolve, reject) => {
+        reject(rejectRequest);
+      });
+    });
+
+    const onPosted = jest.fn();
+
+    render(<UpdateForm auth={auth} onPosted={onPosted} />);
+
+    const textarea = screen.getByPlaceholderText(/what's your status today/i);
+    const button = screen.getByRole("button", { name: /post update/i });
+
+    fireEvent.change(textarea, {
+      target: { value: "LocalStorage persitence testing." },
+    });
+
+    fireEvent.click(button);
+
+    await waitFor(() => {
+      expect(button).not.toBeDisabled();
+    });
+
+    const localStorageBeforeReload = localStorage.getItem("queuedMessages");
+
+    render(<UpdateForm auth={auth} onPosted={onPosted} />);
+    
+    const localStorageAfterReload = localStorage.getItem("queuedMessages");
+
+    expect(localStorageBeforeReload).toMatch(localStorageAfterReload);
   });
 });
 

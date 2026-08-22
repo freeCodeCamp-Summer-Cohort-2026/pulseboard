@@ -123,7 +123,7 @@ export default function UpdateForm({ auth, onPosted }) {
       if (isNetworkError(err)) {
         setError("Failed to connect.");
         modifyQueue({
-          id: text.concat(Math.round(Math.random() * 100)),
+          id: Date.now(),
           text,
           status,
           tags,
