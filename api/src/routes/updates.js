@@ -179,7 +179,6 @@ router.get("/leaderboard", async (req, res) => {
           author: {
             _id: "$author._id",
             displayName: "$author.displayName",
-            email: "$author.email",
           },
           updateCount: 1,
           reactionCount: 1,

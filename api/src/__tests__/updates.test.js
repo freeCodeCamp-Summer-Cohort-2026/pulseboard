@@ -57,7 +57,7 @@ describe("POST /api/updates", () => {
     expect(res.body.update.text).toBe("Shipped the login page");
     expect(res.body.update.status).toBe("done");
     expect(res.body.update.author._id).toBe(userId);
-    expect(res.body.update).not.toHaveProperty("mail");
+    expect(res.body.update).not.toHaveProperty("email");
   });
 
   it("rejects unauthenticated requests", async () => {
@@ -130,7 +130,7 @@ describe("POST /api/updates", () => {
     expect(res.body.update.status).toBe("done");
     expect(res.body.update.tags).toStrictEqual(["frontend", "ui"]);
     expect(res.body.update.author._id).toBe(userId);
-    expect(res.body.update).not.toHaveProperty("mail");
+    expect(res.body.update).not.toHaveProperty("email");
   });
 
   it("creates an update without tags", async () => {
@@ -144,7 +144,7 @@ describe("POST /api/updates", () => {
     expect(res.body.update.status).toBe("done");
     expect(res.body.update.tags).toStrictEqual([]);
     expect(res.body.update.author._id).toBe(userId);
-    expect(res.body.update).not.toHaveProperty("mail");
+    expect(res.body.update).not.toHaveProperty("email");
   });
 
   it("sends 400 error when tags for an update exceed maximum limit", async () => {
@@ -206,7 +206,7 @@ describe("GET /api/updates", () => {
     expect(res.body.updates).toHaveLength(2);
     expect(res.body.updates[0].text).toBe("Second update");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -227,7 +227,7 @@ describe("GET /api/updates", () => {
     expect(res.body.updates).toHaveLength(2);
     expect(res.body.updates[0].text).toBe("First update");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -277,6 +277,9 @@ describe("GET /api/updates", () => {
     expect(page1.body.updates[0].text).toBe("Most reacted");
     expect(page1.body.pagination.page).toBe(1);
     expect(page1.body.pagination.limit).toBe(1);
+    page1.body.updates.forEach((update) => {
+      expect(update).not.toHaveProperty("email");
+    })
     expect(page1.body.pagination.hasNextPage).toBe(true);
 
     // Page 2 should contain the second-most-reacted update,
@@ -290,6 +293,9 @@ describe("GET /api/updates", () => {
     expect(page2.body.updates[0].text).toBe("Second most reacted");
     expect(page2.body.pagination.page).toBe(2);
     expect(page2.body.pagination.limit).toBe(1);
+    page2.body.updates.forEach((update) => {
+      expect(update).not.toHaveProperty("email");
+    })
     expect(page2.body.pagination.hasNextPage).toBe(true);
 
     // Page 3 should contain the update with no reactions.
@@ -300,6 +306,9 @@ describe("GET /api/updates", () => {
     expect(page3.status).toBe(200);
     expect(page3.body.updates).toHaveLength(1);
     expect(page3.body.updates[0].text).toBe("No reactions");
+    page3.body.updates.forEach((update) => {
+      expect(update).not.toHaveProperty("email");
+    })
     expect(page3.body.pagination.hasNextPage).toBe(false);
   });
   it("sorts by reactions before applying pagination", async () => {
@@ -343,6 +352,10 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("Most reacted");
     expect(res.body.pagination.page).toBe(1);
     expect(res.body.pagination.limit).toBe(1);
+    res.body.updates.forEach((update) => {
+      expect(update).not.toHaveProperty("email");
+    })
+
   });
   it("rejects an invalid sort value", async () => {
     const res = await request(app).get("/api/updates?sort=popular");
@@ -365,12 +378,11 @@ describe("GET /api/updates", () => {
       .send({ text: "Done update", status: "done" });
 
     const res = await request(app).get("/api/updates?status=blocked");
-    console.log(res.body);
     expect(res.status).toBe(200);
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].status).toBe("blocked");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -396,7 +408,7 @@ describe("GET /api/updates", () => {
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].text).toBe("Mine");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -417,7 +429,7 @@ describe("GET /api/updates", () => {
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].tags[0]).toBe("frontend");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -444,7 +456,7 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("Meeting with the client");
     expect(res.body.updates[1].text).toBe("Team meeting today");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -483,7 +495,7 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("Meeting with frontend team");
     expect(res.body.updates[0].status).toBe("blocked");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -510,7 +522,7 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("Meeting with the client");
     expect(res.body.updates[1].text).toBe("Team meeting today");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -549,7 +561,7 @@ describe("GET /api/updates", () => {
     expect(res.body.updates[0].text).toBe("Meeting with frontend team");
     expect(res.body.updates[0].status).toBe("blocked");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 });
@@ -645,6 +657,9 @@ describe("update visibility", () => {
 
     expect(listRes.status).toBe(200);
     expect(listRes.body.updates).toHaveLength(2);
+    listRes.body.updates.forEach((update) => {
+      expect(update).not.toHaveProperty("email");
+    })
 
     const idRes = await request(app)
       .get(`/api/updates/${leadsRes.body.update._id}`)
@@ -674,7 +689,7 @@ describe("update visibility", () => {
     expect(res.body.updates).toHaveLength(1);
     expect(res.body.updates[0].text).toBe("Legacy update");
     res.body.updates.forEach((update) => {
-      expect(update).not.toHaveProperty("mail");
+      expect(update).not.toHaveProperty("email");
     })
   });
 
@@ -794,12 +809,12 @@ describe("GET /api/updates/leaderboard", () => {
     expect(res.body.leaderboard[0].author.displayName).toBe("Author");
     expect(res.body.leaderboard[0].updateCount).toBe(3);
     expect(res.body.leaderboard[0].reactionCount).toBe(0);
-    expect(res.body.leaderboard[0]).not.toHaveProperty("mail");
+    expect(res.body.leaderboard[0]).not.toHaveProperty("email");
 
     expect(res.body.leaderboard[1].author.displayName).toBe("Other");
     expect(res.body.leaderboard[1].updateCount).toBe(1);
     expect(res.body.leaderboard[1].reactionCount).toBe(2);
-    expect(res.body.leaderboard[1]).not.toHaveProperty("mail");
+    expect(res.body.leaderboard[1]).not.toHaveProperty("email");
   });
 
   it("returns an empty list when there are no updates in the requested window", async () => {
@@ -862,7 +877,7 @@ describe("GET /api/updates/leaderboard", () => {
 
     expect(res.body.leaderboard[0].updateCount).toBe(1);
     expect(res.body.leaderboard[0].author.displayName).toBe("Author");
-    expect(res.body.leaderboard[0]).not.toHaveProperty("mail");
+    expect(res.body.leaderboard[0]).not.toHaveProperty("email");
   });
 });
 
@@ -994,7 +1009,7 @@ describe("POST /api/updates/:id/reactions", () => {
     expect(res.status).toBe(201);
     expect(res.body.update.reactions).toHaveLength(1);
     expect(res.body.update.reactions[0].emoji).toBe("🎉");
-    expect(res.body.update).not.toHaveProperty("mail");
+    expect(res.body.update).not.toHaveProperty("email");
   });
 
   it("rejects duplicate reactions from the same user with the same emoji", async () => {
@@ -1230,7 +1245,7 @@ describe("PATCH /api/updates/:id", () => {
     expect(res.body.update.status).toBe("done");
     expect(res.body.update._id).toBe(updateId);
     expect(res.body.update.author._id).toBe(userId);
-    expect(res.body.update).not.toHaveProperty("mail");
+    expect(res.body.update).not.toHaveProperty("email");
   });
 
   it("adds edited indicator when author edit their own update", async () => {
@@ -1258,7 +1273,7 @@ describe("PATCH /api/updates/:id", () => {
     expect(res.body.update._id).toBe(updateId);
     expect(res.body.update.author._id).toBe(userId);
     expect(res.body.update.editedAt).toBeTruthy();
-    expect(res.body.update).not.toHaveProperty("mail");
+    expect(res.body.update).not.toHaveProperty("email");
   });
 
   it("edited indicator is not added for updates that are not edited", async () => {
@@ -1275,7 +1290,7 @@ describe("PATCH /api/updates/:id", () => {
     expect(res.body.update.status).toBe("on-track");
     expect(res.body.update.author._id).toBe(userId);
     expect(res.body.update.editedAt).toBeNull();
-    expect(res.body.update).not.toHaveProperty("mail");
+    expect(res.body.update).not.toHaveProperty("email");
   });
 
   it("rejects another user from editing the update", async () => {
@@ -1457,7 +1472,7 @@ describe("PATCH /api/updates/:id", () => {
       expect(res.body).toHaveProperty("data");
       expect(Array.isArray(res.body.data)).toBe(true);
       expect(res.headers["content-type"]).toContain("application/json");
-      expect(res.body).not.toHaveProperty("mail");
+      expect(res.body).not.toHaveProperty("email");
     });
 
     test("returns updates as CSV when format=csv", async () => {
@@ -1671,6 +1686,7 @@ describe("PATCH /api/updates/:id/pin", () => {
     expect(res.status).toBe(200);
     expect(res.body.updates).toHaveLength(2);
     expect(res.body.updates[0].text).toBe("First Update");
+    expect(res.body.updates[0]).not.toHaveProperty("email");
   });
 
   it("returns 404 when pinning an non-existing update", async () => {
