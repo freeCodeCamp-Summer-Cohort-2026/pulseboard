@@ -301,6 +301,24 @@ function exportAsCSV(res, data) {
   return res.send(csvContent);
 }
 
+router.get("/tags", optionalAuth, async(req, res) => {
+  try {
+    const filter = {};
+    if(!req.user || req.user.role !== "LEAD") {
+      // exclude leads-only updates for non-lead/anonymous requesters
+      filter.visibility = { $ne: "leads" };
+    }
+
+    // fetch unique tags with filter applied, so that tags don't leak to non-lead requesters
+    const tags = await Update.distinct("tags", filter);
+
+    tags.sort();
+    return res.json({ tags });
+  } catch (err) {
+    return res.status(500).json({ error: "Failed to fetch tags" });
+  }
+});
+
 // GET /api/updates/:id
 router.get("/:id", optionalAuth, async (req, res) => {
   if (!isValidObjectId(req.params.id)) {

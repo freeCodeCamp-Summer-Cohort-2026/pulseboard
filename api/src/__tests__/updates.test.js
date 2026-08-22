@@ -524,6 +524,84 @@ describe("GET /api/updates", () => {
   });
 });
 
+describe("GET /api/updates/tags", () => {
+  it("Returns an empty array when there are no updates", async () => {
+    const res = await request(app).get("/api/updates/tags");
+
+    expect(res.status).toBe(200);
+    expect(res.body.tags).toEqual([]);
+  });
+
+  it("Returns distinct set of tags across all updates", async () => {
+    // Ccreates updates with overlapping tags ("ui" appears twice)
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Shipped the login page",
+        status: "done",
+        tags: ["frontend", "ui"],
+      });
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "Fixed the API bug",
+        status: "on-track",
+        tags: ["backend", "ui"],
+      });
+
+    const res = await request(app).get("/api/updates/tags");
+
+    expect(res.status).toBe(200);
+    expect(res.body.tags).toEqual(["backend", "frontend", "ui"]);
+  });
+
+  it("excludes tags from leads-only updates for non-LEAD and anonymous requesters", async () => {
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        text: "public update",
+        status: "on-track",
+        tags: ["public-tag"]
+      });
+
+    await User.findOneAndUpdate(
+      { email: "author@example.com" },
+      { role: "LEAD" }
+    );
+
+    const loginRes = await request(app).post("/api/auth/login").send({
+      email: "author@example.com",
+      password: "password123"
+    });
+    const leadToken = loginRes.body.token;
+
+    await request(app)
+      .post("/api/updates")
+      .set("Authorization", `Bearer ${leadToken}`)
+      .send({
+        text: "leads only update",
+        status: "blocked",
+        tags: ["lead-tag"],
+        visibility: "leads"
+      });
+
+    // anonymous requester
+    const anonRes = await request(app).get("/api/updates/tags");
+    expect(anonRes.status).toBe(200);
+    expect(anonRes.body.tags).toEqual(["public-tag"]);
+
+    // LEAD requester sees both
+    const leadRes = await request(app).get("/api/updates/tags").set("Authorization", `Bearer ${leadToken}`);
+
+    expect(leadRes.status).toBe(200);
+    expect(leadRes.body.tags).toEqual(["lead-tag", "public-tag"]);
+  });
+});
+
 describe("update visibility", () => {
   async function promoteToLead(email = "author@example.com") {
     await User.findOneAndUpdate({ email }, { role: "LEAD" });
